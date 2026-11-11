@@ -46,6 +46,18 @@ PyTorch 与 torchvision 的版本配对来自 [PyTorch 官方安装说明](https
 COCO 数据、模型权重、emoji 和 DAVIS 数据也需要按对应 notebook 准备。
 如有 `requirements-local.lock.txt`，它记录本次安装的精确版本，可用于复现。
 
+## 已验证范围
+
+- Python 3.12.7、NumPy 1.26.4、SciPy 1.13.1。
+- PyTorch 2.7.1 + CUDA 12.6、torchvision 0.22.1；RTX 4070 Laptop 上实际 GPU 运算通过。
+- 作业二提供的 Cython 扩展已编译，导入与输入输出检查通过。
+- JupyterLab 的本机网页服务和认证 API 通过检查。
+- 在真实 Jupyter 内核中执行了 kNN 的环境、导入、数据加载单元，读取 50,000 张训练图片和 10,000 张测试图片。
+- `pip check` 通过。仅修改作业一、二共 11 个基础设施单元；解题单元、推导、文字答案均保留原样。
+
+再次检查可执行 `.\.venv\Scripts\python.exe scripts\check_environment.py`。
+尚未验证其他 notebook 的完整执行；COCO 等其他数据、作业三额外依赖与本地提交 PDF 流程仍待准备。
+
 ## Git 与 GitHub
 
 已保留原始 starter code 的本地提交，方便查看自己的修改。
