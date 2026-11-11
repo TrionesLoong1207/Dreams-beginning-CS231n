@@ -1,0 +1,48 @@
+# Local Python environments and package caches
+.venv/
+.python/
+.uv-cache/
+.cache/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# OS metadata and original download archives
+__MACOSX/
+.DS_Store
+Thumbs.db
+/assignment1.zip
+/assignment2.zip
+/assignment3.zip
+
+# Datasets: keep the supplied download scripts
+**/cs231n/datasets/*
+!**/cs231n/datasets/*.sh
+**/data/
+**/pretrained_model/
+**/cs231n/exp/
+*.pth
+*.pt
+*.ckpt
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.pkl
+
+# Build products and generated submission archives
+build/
+*.egg-info/
+*.pyd
+*.so
+*.obj
+*.lib
+**/im2col_cython.c
+**/a*_code_submission.zip
+
+# Local server logs and credentials
+.local/
+.env
+.env.*
+!.env.example
+*.log
