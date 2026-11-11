@@ -1,0 +1,25 @@
+# Tested with Python 3.12. Install CUDA PyTorch separately (see README).
+numpy==1.26.4
+scipy==1.13.1
+matplotlib==3.9.4
+imageio==2.37.0
+Pillow==11.1.0
+h5py==3.12.1
+six==1.17.0
+future==1.0.0
+Cython==0.29.37
+setuptools==75.8.0
+pip
+jupyterlab>=4.3,<5
+ipykernel>=6.29,<7
+nbconvert>=7.16,<8
+nbformat>=5.10,<6
+PyPDF2==3.0.1
+tqdm
+einops
+joblib
+scikit-learn==1.6.1
+pandas==2.2.3
+ftfy
+regex
+opencv-python==4.11.0.86
