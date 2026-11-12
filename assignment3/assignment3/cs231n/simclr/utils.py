@@ -8,7 +8,7 @@ from .contrastive_loss import *
 
 def train(model, data_loader, train_optimizer, epoch, epochs, batch_size=32, temperature=0.5, device='cuda'):
     """Trains the model defined in ./model.py with one epoch.
-    
+
     Inputs:
     - model: Model class object as defined in ./model.py.
     - data_loader: torch.utils.data.DataLoader object; loads in training data. You can assume the loaded data has been augmented.
@@ -21,6 +21,14 @@ def train(model, data_loader, train_optimizer, epoch, epochs, batch_size=32, tem
 
     Returns:
     - The average loss.
+
+
+    中文对照：
+    将定义在 / model.py 中的模型用一个训练轮次进行列车。
+
+    输入: - 模型: 定义在 / model.py 中的模型类对象。 - data_loader 对象: torch.utils.data.DataLoader 对象; 训练数据中的载荷。 您可以假设装入的数据已经扩大。 -train_optimizer 对象: torch.optim.Optimizer 对象, 将优化器应用到训练中。 - och: 整数; 当前时分数。 - aps: 整数值; 切数。 -- batch_size: 每批训练样品的数量。 - 温度: 浮点; 温度 (tau) 参数在 simclr_loss_vectorized 中使用。 - 设备: 用于定义火炬的装置名称。
+
+    返回: - 平均损失。
     """
     model.train()
     total_loss, total_num, train_bar = 0.0, 0, tqdm(data_loader)
@@ -36,11 +44,14 @@ def train(model, data_loader, train_optimizer, epoch, epochs, batch_size=32, tem
         # Run x_i and x_j through the model to get out_left, out_right.              #
         # Then compute the loss using simclr_loss_vectorized.                        #
         ##############################################################################
+        # [中文] TODO: 启动您的代码。 请查看 model.py 文件以了解模型的输入和输出。 通过模型运行 x_i 和 x_j 获得 out_left,
+        # out_right。 然后使用 simclr_loss_vectorized 计算损失。
         
         
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
+        # [中文] 代码结束
         
         train_optimizer.zero_grad()
         loss.backward()
@@ -88,6 +99,7 @@ def test(model, memory_data_loader, test_data_loader, epoch, epochs, c, temperat
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
     with torch.no_grad():
         # generate feature bank
+        # [中文] 生成特性库
         for data, _, target in tqdm(memory_data_loader, desc='Feature extracting'):
             feature, out = model(data.to(device))
             feature_bank.append(feature)
@@ -96,6 +108,7 @@ def test(model, memory_data_loader, test_data_loader, epoch, epochs, c, temperat
         # [N]
         feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
         # loop test data to predict the label by weighted knn search
+        # [中文] 通过加权 knn 搜索预测标签的循环测试数据
         test_bar = tqdm(test_data_loader)
         for data, _, target in test_bar:
             data, target = data.to(device), target.to(device)
@@ -103,6 +116,7 @@ def test(model, memory_data_loader, test_data_loader, epoch, epochs, c, temperat
 
             total_num += data.size(0)
             # compute cos similarity between each feature vector and feature bank ---> [B, N]
+            # [中文] 计算每个特征向量和特性库之间的相似性 -- -- > [B、N]
             sim_matrix = torch.mm(feature, feature_bank)
             
             # [B, K]
@@ -112,10 +126,12 @@ def test(model, memory_data_loader, test_data_loader, epoch, epochs, c, temperat
             sim_weight = (sim_weight / temperature).exp()
 
             # counts for each class
+            # [中文] 每个类的计数
             one_hot_label = torch.zeros(data.size(0) * k, c, device=device)
             # [B*K, C]
             one_hot_label = one_hot_label.scatter(dim=-1, index=sim_labels.view(-1, 1), value=1.0)
             # weighted score ---> [B, C]
+            # [中文] 加权分数 -- > [B、C]
             pred_scores = torch.sum(one_hot_label.view(data.size(0), -1, c) * sim_weight.unsqueeze(dim=-1), dim=1)
 
             pred_labels = pred_scores.argsort(dim=-1, descending=True)

@@ -4,6 +4,7 @@ cimport cython
 
 # DTYPE = np.float64
 # ctypedef np.float64_t DTYPE_t
+# [中文] ctypedef np.float64_t DTYPE_t 类型
 
 ctypedef fused DTYPE_t:
     np.float32_t
@@ -29,6 +30,7 @@ def im2col_cython(np.ndarray[DTYPE_t, ndim=4] x, int field_height,
 
     # Moving the inner loop to a C function with no bounds checking works, but does
     # not seem to help performance in any measurable way.
+    # [中文] 将内环移动到 C 函数, 没有边框检查工作, 但似乎无助于任何可测量的性能。
 
     im2col_cython_inner(cols, x_padded, N, C, H, W, HH, WW,
                         field_height, field_width, padding, stride)
@@ -64,6 +66,7 @@ def col2im_cython(np.ndarray[DTYPE_t, ndim=2] cols, int N, int C, int H, int W,
 
     # Moving the inner loop to a C-function with no bounds checking improves
     # performance quite a bit for col2im.
+    # [中文] 将内环移动到 C 函数, 没有边框检查, 会使 Col2im 的性能稍有改进。
     col2im_cython_inner(cols, x_padded, N, C, H, W, HH, WW, 
                         field_height, field_width, padding, stride)
     if padding > 0:

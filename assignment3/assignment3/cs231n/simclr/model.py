@@ -15,8 +15,10 @@ class Model(nn.Module):
             if not isinstance(module, nn.Linear) and not isinstance(module, nn.MaxPool2d):
                 self.f.append(module)
         # encoder
+        # [中文] 编码器
         self.f = nn.Sequential(*self.f)
         # projection head
+        # [中文] 投影头
         self.g = nn.Sequential(nn.Linear(2048, 512, bias=False), nn.BatchNorm1d(512),
                                nn.ReLU(inplace=True), nn.Linear(512, feature_dim, bias=True))
 

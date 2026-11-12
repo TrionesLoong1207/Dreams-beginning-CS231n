@@ -4,6 +4,7 @@ import numpy as np
 
 def get_im2col_indices(x_shape, field_height, field_width, padding=1, stride=1):
     # First figure out what the size of the output should be
+    # [中文] 首先找出输出的大小
     N, C, H, W = x_shape
     assert (H + 2 * padding - field_height) % stride == 0
     assert (W + 2 * padding - field_height) % stride == 0
@@ -24,8 +25,13 @@ def get_im2col_indices(x_shape, field_height, field_width, padding=1, stride=1):
 
 
 def im2col_indices(x, field_height, field_width, padding=1, stride=1):
-    """ An implementation of im2col based on some fancy indexing """
+    """ An implementation of im2col based on some fancy indexing
+
+    中文对照：
+    基于一些花哨索引的 im2col 执行
+    """
     # Zero-pad the input
+    # [中文] 输入为零
     p = padding
     x_padded = np.pad(x, ((0, 0), (0, 0), (p, p), (p, p)), mode="constant")
 
@@ -38,7 +44,11 @@ def im2col_indices(x, field_height, field_width, padding=1, stride=1):
 
 
 def col2im_indices(cols, x_shape, field_height=3, field_width=3, padding=1, stride=1):
-    """ An implementation of col2im based on fancy indexing and np.add.at """
+    """ An implementation of col2im based on fancy indexing and np.add.at
+
+    中文对照：
+    基于花哨索引和 np.add.at 的 col2im 执行
+    """
     N, C, H, W = x_shape
     H_padded, W_padded = H + 2 * padding, W + 2 * padding
     x_padded = np.zeros((N, C, H_padded, W_padded), dtype=cols.dtype)

@@ -24,6 +24,14 @@ def blur_image(X):
 
     Returns:
     - X_blur: Blurred version of X, of shape (N, 3, H, W)
+
+
+    中文对照：
+    一个非常温和的图像模糊操作, 用作图像生成的常规化器。
+
+    输入: - X:形状 (N, 3, H, W) 的图像数据
+
+    返回: - X_blur: X 的模糊版本,形状 (N, 3, H, W)
     """
     from .fast_layers import conv_forward_fast
 
@@ -44,12 +52,22 @@ def preprocess_image(img):
     """Preprocess an image for squeezenet.
 
     Subtracts the pixel mean and divides by the standard deviation.
+
+
+    中文对照：
+    预处理 shitchnet 的图像。
+
+    减去像素平均值,除以标准差。
     """
     return (img.astype(np.float32) / 255.0 - SQUEEZENET_MEAN) / SQUEEZENET_STD
 
 
 def deprocess_image(img, rescale=False):
-    """Undo preprocessing on an image and convert back to uint8."""
+    """Undo preprocessing on an image and convert back to uint8.
+
+    中文对照：
+    在图像上卸载预处理, 并转换为 Quint8。
+    """
     img = img * SQUEEZENET_STD + SQUEEZENET_MEAN
     if rescale:
         vmin, vmax = img.min(), img.max()
@@ -61,6 +79,10 @@ def image_from_url(url):
     """
     Read an image from a URL. Returns a numpy array with the pixel data.
     We write the image to a temporary file then read it back. Kinda gross.
+
+
+    中文对照：
+    从 URL 读取图像。 返回一个带有像素数据的缩略数组。 我们将图像写入一个临时文件, 然后读回它。 有点毛。
     """
     try:
         f = urllib.request.urlopen(url)
@@ -82,6 +104,12 @@ def load_image(filename, size=None):
     Inputs:
     - filename: path to file
     - size: size of shortest dimension after rescaling
+
+
+    中文对照：
+    从磁盘装入图像并调整其大小。
+
+    输入: - 文件名: 文件路径 - 大小: 调整后最小尺寸
     """
     img = imread(filename)
     if size is not None:
@@ -91,5 +119,6 @@ def load_image(filename, size=None):
         new_shape = (orig_shape * scale_factor).astype(int)
         # TODO: the width, height values are currently flipped here, and we should
         # change the resampling method to BILINEAR to match the torch implementation
+        # [中文] TODO: 宽度、 高度值目前在此翻转, 我们应该将重新采样方法更改为 BILINEAR 以匹配火炬执行
         img = np.array(Image.fromarray(img).resize(new_shape, resample=Image.NEAREST))
     return img

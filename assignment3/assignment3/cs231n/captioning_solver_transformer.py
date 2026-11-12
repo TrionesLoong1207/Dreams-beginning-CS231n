@@ -44,6 +44,24 @@ class CaptioningSolverTransformer(object):
       - loss: Scalar giving the loss
       - grads: Dictionary with the same keys as self.params mapping parameter
         names to gradients of the loss with respect to those parameters.
+
+
+    中文对照：
+    描述 Solver Transex 包含训练基于变换器图像字幕模型所需的全部逻辑。
+
+    要训练模型,您将首先构建一个描述求解实例, 将模型、 数据集和各种选项 (learning rate, batch size, etc) 传递给构建者。 然后您将调用火车 () 方法来运行优化程序并训练模型。
+
+    列车 () 方法返回后, 实例变量 solver.loss_history 将包含训练中遇到的所有损失列表。
+
+    示例用法可能看起来是这样的:
+
+    数据 =load_coco_data() 型号 = MyAweome Transformex模型 ()hidden_dim = 100求解器 = 描述求解( 模型, 数据, )optim_config ={  'learning_rate':  1e-3, },  num_epochs = 10,  batch_size = 100,  print_every = 100 )  solver.train()
+
+     描述Solver Transex 在一个必须符合下列 API 的模型对象上工作:
+
+    输入: - 特征: 提供图像、 形状( N、 D - 说明: 图像描述的排列, 形状 (N, T), 其中每个元素都位于范围 ( 0, V)。
+
+    返回: - 损失: 标量 给出损失 - 梯度: 与self.params绘图参数名称为这些参数的损失梯度。
     """
 
     def __init__(self, model, data, idx_to_word, **kwargs):
@@ -64,11 +82,22 @@ class CaptioningSolverTransformer(object):
           iterations.
         - verbose: Boolean; if set to false then no output will be printed during
           training.
+
+
+        中文对照：
+        构造一个新的描述求解实例。
+
+        所需参数: - 模型: 符合上述 API 的模型对象 - 数据: load_coco_data 的训练和验证数据词典
+
+        可选论点:
+
+        - learning_rate:优化的学习率。 - batch_size:用于计算训练期间损失和梯度的微型插头的大小。 -num_epochs:训练期间运行的训练轮次数。 - print_every:整数;训练损失将打印到每个print_every迭代。 - 动词:布尔恩;如果设定为错误,训练期间将不打印输出。
         """
         self.model = model
         self.data = data
 
         # Unpack keyword arguments
+        # [中文] 卸载关键词参数
         self.learning_rate = kwargs.pop("learning_rate", 0.001)
         self.batch_size = kwargs.pop("batch_size", 100)
         self.num_epochs = kwargs.pop("num_epochs", 10)
@@ -78,6 +107,7 @@ class CaptioningSolverTransformer(object):
         self.optim = torch.optim.Adam(self.model.parameters(), self.learning_rate)
 
         # Throw an error if there are extra keyword arguments
+        # [中文] 如果存在额外关键字参数, 丢弃错误
         if len(kwargs) > 0:
             extra = ", ".join('"%s"' % k for k in list(kwargs.keys()))
             raise ValueError("Unrecognized arguments %s" % extra)
@@ -90,8 +120,13 @@ class CaptioningSolverTransformer(object):
         """
         Set up some book-keeping variables for optimization. Don't call this
         manually.
+
+
+        中文对照：
+        设置一些用于优化的簿记变量。 不要手工调用它。
         """
         # Set up some variables for book-keeping
+        # [中文] 为簿记设置一些变量
         self.epoch = 0
         self.loss_history = []
 
@@ -100,8 +135,13 @@ class CaptioningSolverTransformer(object):
         """
         Make a single gradient update. This is called by train() and should not
         be called manually.
+
+
+        中文对照：
+        做一个单一的梯度更新。 这是由列车 () 命名的, 不应该手工命名。
         """
         # Make a minibatch of training data
+        # [中文] 制作少量的训练数据
         minibatch = sample_coco_minibatch(
             self.data, batch_size=self.batch_size, split="train"
         )
@@ -127,6 +167,10 @@ class CaptioningSolverTransformer(object):
     def train(self):
         """
         Run optimization to train the model.
+
+
+        中文对照：
+        运行优化来训练模型。
         """
         num_train = self.data["train_captions"].shape[0]
         iterations_per_epoch = max(num_train // self.batch_size, 1)
@@ -136,6 +180,7 @@ class CaptioningSolverTransformer(object):
             self._step()
 
             # Maybe print training loss
+            # [中文] 也许是印刷训练损失
             if self.verbose and t % self.print_every == 0:
                 print(
                     "(Iteration %d / %d) loss: %f"
@@ -143,6 +188,7 @@ class CaptioningSolverTransformer(object):
                 )
 
             # At the end of every epoch, increment the epoch counter.
+            # [中文] 在每一个训练轮次的尽头, 递增训练轮次的柜台。
             epoch_end = (t + 1) % iterations_per_epoch == 0
 
     def transformer_temporal_softmax_loss(self, x, y, mask):
@@ -169,6 +215,16 @@ class CaptioningSolverTransformer(object):
 
         Returns a tuple of:
         - loss: Scalar giving loss
+
+
+        中文对照：
+        用于 RNN 的软麦损失时间版本。 我们假设我们正在对长度 T 时间序列的每个时间序列的V 大小词汇进行预测, 以小块 N 大小。 输入 x 在所有时间步骤中给出所有词汇元素的分数, y 给出每个时间步骤的地面真相元素的指数。 我们在每个时间步骤中使用跨轴损失, 在所有时间序列中填充损失, 并在整个时间序列中平均。
+
+        作为一种额外的复杂因素,我们也许想在某些时间步骤中忽略模型输出,因为不同长度的序列可能已经合并成一个小批和加了NULL标志。 任择掩码参数告诉我们哪些元素应该促成损失。
+
+        输入: - x: 输入分数,形状(N, T, V) - y: 形状 (N, T) 的地面真象指数,其中每个元素都位于 0 范围 y[i, t] < V - 掩码: 形状(N, T) 的布尔恩数组,其中 mask[i, t] 表示在形状 x[i, t] 上的分数是否应该促成损失。
+
+        返回: - 损失: 标量 给付损失
         """
 
         N, T, V = x.shape

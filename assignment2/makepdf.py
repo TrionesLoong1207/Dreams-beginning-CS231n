@@ -40,6 +40,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # We pass in a explicit notebook arg so that we can provide an ordered list
     # and produce an ordered PDF.
+    # [中文] 我们通过一个明确的笔记本 以便我们可以提供一份有订单的名单 并产生一个有订单的PDF。
     parser.add_argument("--notebooks", type=str, nargs="+", required=True)
     parser.add_argument("--pdf_filename", type=str, required=True)
     args = parser.parse_args()

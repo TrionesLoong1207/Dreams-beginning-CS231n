@@ -39,6 +39,7 @@ class ClassificationSolverViT:
         self.test_data = test_data
 
         # Unpack keyword arguments
+        # [中文] 卸载关键词参数
         self.learning_rate = kwargs.pop("learning_rate", 1.e-4)
         self.weight_decay = kwargs.pop("weight_decay", 0.0)
         self.batch_size = kwargs.pop("batch_size", 64)

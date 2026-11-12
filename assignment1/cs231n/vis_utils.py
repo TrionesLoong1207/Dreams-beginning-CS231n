@@ -13,6 +13,12 @@ def visualize_grid(Xs, ubound=255.0, padding=1):
     - Xs: Data of shape (N, H, W, C)
     - ubound: Output grid will have values scaled to the range [0, ubound]
     - padding: The number of blank pixels between elements of the grid
+
+
+    中文对照：
+    重塑一个 4D 图像数据到网格, 以便于视觉化。
+
+    输入: - Xs: 形状 (N, H, W, C) 的数据 - 缩放: 输出网格的值将缩放到范围 [0, 缩放] - 粘贴: 网格各元素之间的空白像素数量
     """
     (N, H, W, C) = Xs.shape
     grid_size = int(ceil(sqrt(N)))
@@ -41,7 +47,11 @@ def visualize_grid(Xs, ubound=255.0, padding=1):
 
 
 def vis_grid(Xs):
-    """ visualize a grid of images """
+    """ visualize a grid of images
+
+    中文对照：
+    图像网格可视化
+    """
     (N, H, W, C) = Xs.shape
     A = int(ceil(sqrt(N)))
     G = np.ones((A * H + A, A * W + A, C), Xs.dtype)
@@ -55,6 +65,7 @@ def vis_grid(Xs):
                 ]
                 n += 1
     # normalize to [0,1]
+    # [中文] 正常状态为 [0, 1 ]
     maxg = G.max()
     ming = G.min()
     G = (G - ming) / (maxg - ming)
@@ -62,7 +73,11 @@ def vis_grid(Xs):
 
 
 def vis_nn(rows):
-    """ visualize array of arrays of images """
+    """ visualize array of arrays of images
+
+    中文对照：
+    图像数组可视化
+    """
     N = len(rows)
     D = len(rows[0])
     H, W, C = rows[0][0].shape
@@ -72,6 +87,7 @@ def vis_nn(rows):
         for x in range(D):
             G[y * H + y : (y + 1) * H + y, x * W + x : (x + 1) * W + x, :] = rows[y][x]
     # normalize to [0,1]
+    # [中文] 正常状态为 [0, 1 ]
     maxg = G.max()
     ming = G.min()
     G = (G - ming) / (maxg - ming)

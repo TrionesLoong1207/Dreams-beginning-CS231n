@@ -13,6 +13,14 @@ def affine_relu_forward(x, w, b):
     Returns a tuple of:
     - out: Output from the ReLU
     - cache: Object to give to the backward pass
+
+
+    中文对照：
+    方便度层, 绕行折叠变形, 之后是 RELU。 @ info: whatsthis
+
+    输入数: - x: 输入角层- w, b: 角层的权重
+
+    返回一个图普: - 退出: 从 RELU - 缓存中输出: 要给给 反向传播 的对象
     """
     a, fc_cache = affine_forward(x, w, b)
     out, relu_cache = relu_forward(a)
@@ -22,6 +30,10 @@ def affine_relu_forward(x, w, b):
 def affine_relu_backward(dout, cache):
     """
     Backward pass for the affine-relu convenience layer
+
+
+    中文对照：
+     松脂便利层 反向传播
     """
     fc_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)
@@ -40,6 +52,14 @@ def conv_relu_forward(x, w, b, conv_param):
     Returns a tuple of:
     - out: Output from the ReLU
     - cache: Object to give to the backward pass
+
+
+    中文对照：
+    依次执行卷积和 ReLU 的便捷组合层。
+
+    输入数: - x: 向卷积层输入- w, b, conv_param: 卷积层的权重和参数
+
+    返回一个图普: - 退出: 从 RELU - 缓存中输出: 要给给 反向传播 的对象
     """
     a, conv_cache = conv_forward_fast(x, w, b, conv_param)
     out, relu_cache = relu_forward(a)
@@ -50,6 +70,10 @@ def conv_relu_forward(x, w, b, conv_param):
 def conv_relu_backward(dout, cache):
     """
     Backward pass for the conv-relu convenience layer.
+
+
+    中文对照：
+     用于 conv-relu 方便层的 反向传播。
     """
     conv_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)
@@ -85,6 +109,14 @@ def conv_relu_pool_forward(x, w, b, conv_param, pool_param):
     Returns a tuple of:
     - out: Output from the pooling layer
     - cache: Object to give to the backward pass
+
+
+    中文对照：
+    进行革命的便利层, RELU, 和游泳池。
+
+    输入量: - x: 向卷积层输入 - w, b, conv_param: 卷积层的权重和参数 - pool_param:集合层的参数
+
+    返回一个图普: - 退出: 集合层输出 - 缓存: 要给给 反向传播 的对象
     """
     a, conv_cache = conv_forward_fast(x, w, b, conv_param)
     s, relu_cache = relu_forward(a)
@@ -96,6 +128,10 @@ def conv_relu_pool_forward(x, w, b, conv_param, pool_param):
 def conv_relu_pool_backward(dout, cache):
     """
     Backward pass for the conv-relu-pool convenience layer
+
+
+    中文对照：
+     用于 conv-relu-pool 方便层的 反向传播
     """
     conv_cache, relu_cache, pool_cache = cache
     ds = max_pool_backward_fast(dout, pool_cache)

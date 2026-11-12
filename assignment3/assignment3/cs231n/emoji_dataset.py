@@ -53,6 +53,7 @@ class TextEmbedder:
         all_texts = list(set(all_texts))
 
         # encode all
+        # [中文] 全部编码
         idx_mapping = {}
         text_embeddings = []
         for i, text in tqdm(enumerate(all_texts)):
@@ -61,15 +62,19 @@ class TextEmbedder:
         text_embeddings = torch.stack(text_embeddings)
 
         # PCA
+        # [中文]  主成分分析（PCA）
         data = text_embeddings.float().numpy()
         mean = np.mean(data, axis=0)  # Compute mean vector
+        # [中文] 计算平均矢量
         centered_data = data - mean
         U, S, Vt = np.linalg.svd(centered_data, full_matrices=False)
         components = Vt  # Store all components
+        # [中文] 存储全部组件
         components = torch.from_numpy(components).float()
         mean = torch.from_numpy(mean).float()
 
         # save
+        # [中文] 保存
         torch.save(
             {
                 "idx_mapping": idx_mapping,
@@ -164,14 +169,17 @@ class EmojiDataset(Dataset):
         texts = self.data[idx]["texts"]
 
         # select random image from available images
+        # [中文] 从可用的图像中随机选择图像
         img_idx = np.random.choice(len(imgs))
         img = imgs[img_idx]
 
         # preprocess image
+        # [中文] 预处理图像
         img = Image.fromarray(img)
         img = self.transform(img)
 
         # select random text
+        # [中文] 选择随机文本
         text = np.random.choice(texts)
         text_emb = self.text_embedder.embed(text=text, num_pca=self.num_text_emb_pca)
         model_kwargs = {"text_emb": text_emb, "text": text}
