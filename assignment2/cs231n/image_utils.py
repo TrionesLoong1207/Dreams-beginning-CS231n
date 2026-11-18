@@ -27,11 +27,7 @@ def blur_image(X):
 
 
     中文对照：
-    一个非常温和的图像模糊操作, 用作图像生成的常规化器。
-
-    输入: - X:形状 (N, 3, H, W) 的图像数据
-
-    返回: - X_blur: X 的模糊版本,形状 (N, 3, H, W)
+    对图像施加轻微模糊，在图像生成中作为一种正则化。输入与输出的形状均为 (N,3,H,W)。
     """
     from .fast_layers import conv_forward_fast
 
@@ -55,9 +51,7 @@ def preprocess_image(img):
 
 
     中文对照：
-    预处理 shitchnet 的图像。
-
-    减去像素平均值,除以标准差。
+    为 SqueezeNet 预处理图片：按通道减去像素均值，再除以标准差。
     """
     return (img.astype(np.float32) / 255.0 - SQUEEZENET_MEAN) / SQUEEZENET_STD
 
@@ -66,7 +60,7 @@ def deprocess_image(img, rescale=False):
     """Undo preprocessing on an image and convert back to uint8.
 
     中文对照：
-    在图像上卸载预处理, 并转换为 Quint8。
+    撤销图片预处理，再转回 uint8。
     """
     img = img * SQUEEZENET_STD + SQUEEZENET_MEAN
     if rescale:
@@ -82,11 +76,12 @@ def image_from_url(url):
 
 
     中文对照：
-    从 URL 读取图像。 返回一个带有像素数据的缩略数组。 我们将图像写入一个临时文件, 然后读回它。 有点毛。
+    从 URL 读取图片，并返回像素 NumPy 数组。当前实现先下载到临时文件，再从文件读取。
     """
     try:
         f = urllib.request.urlopen(url)
-        _, fname = tempfile.mkstemp()
+        fd, fname = tempfile.mkstemp()
+        os.close(fd)
         with open(fname, "wb") as ff:
             ff.write(f.read())
         img = imread(fname)
@@ -107,9 +102,7 @@ def load_image(filename, size=None):
 
 
     中文对照：
-    从磁盘装入图像并调整其大小。
-
-    输入: - 文件名: 文件路径 - 大小: 调整后最小尺寸
+    从磁盘读取并缩放图片。filename 是文件路径，size 指定缩放后较短边的长度。
     """
     img = imread(filename)
     if size is not None:
@@ -119,6 +112,6 @@ def load_image(filename, size=None):
         new_shape = (orig_shape * scale_factor).astype(int)
         # TODO: the width, height values are currently flipped here, and we should
         # change the resampling method to BILINEAR to match the torch implementation
-        # [中文] TODO: 宽度、 高度值目前在此翻转, 我们应该将重新采样方法更改为 BILINEAR 以匹配火炬执行
+        # [中文] 原代码的待修正说明：此处宽、高参数的顺序颠倒；重采样应改用 BILINEAR，以与 PyTorch 实现一致。
         img = np.array(Image.fromarray(img).resize(new_shape, resample=Image.NEAREST))
     return img

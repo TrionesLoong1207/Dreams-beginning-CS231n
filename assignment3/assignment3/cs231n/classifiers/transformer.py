@@ -18,9 +18,7 @@ class CaptioningTransformer(nn.Module):
 
 
     中文对照：
-    描述转换器使用变换器解码器从图像特性中生成字幕。
-
-    变形器接收的输入矢量为 D 大小, vocab 大小为 V, 运行长度 T 的序列, 使用维度 W 的单词矢量, 并运行大小为 N 的小型信箱。
+    用 Transformer 解码器根据图像特征生成文本描述。D 是图像特征维度，V 是词表大小，W 是词嵌入维度；该类定义模型计算，训练由独立训练器管理。
     """
     def __init__(self, word_to_idx, input_dim, wordvec_dim, num_heads=4,
                  num_layers=2, max_length=50):
@@ -38,9 +36,7 @@ class CaptioningTransformer(nn.Module):
 
 
         中文对照：
-        构造一个新的描述 Transex 实例。
-
-        投入: -word_to_idx:提供词汇的字典。它包含 V 项。并且将每个字符串绘制成区域中唯一的整数[0, V). -  input_dim:输入图像特征向量的尺寸 D。 - wordvec_dim:字矢量的维度 W。 - num_heads:关注的负责人人数。num_layers:Transformer层的数目。 -max_length:最大可能的序列长度。
+        构造 CaptioningTransformer。word_to_idx 将词映射到 [0,V)；input_dim 为图像特征维度，wordvec_dim 为词嵌入维度，num_heads 为头数，num_layers 为 Transformer 层数，max_length 为最大序列长度。
         """
         super().__init__()
 
@@ -66,7 +62,7 @@ class CaptioningTransformer(nn.Module):
 
 
         中文对照：
-        初始化网络的权重。
+        初始化网络权重。
         """
         if isinstance(module, (nn.Linear, nn.Embedding)):
             module.weight.data.normal_(mean=0.0, std=0.02)
@@ -91,15 +87,11 @@ class CaptioningTransformer(nn.Module):
 
 
         中文对照：
-        根据图像特性和描述标记, 返回每个时间步骤可能显示的标记的分布。 请注意, 由于整个描述序列都是同时提供的, 我们隐藏未来的时间步骤。
-
-        输入: - 特征: 图像特征, 形状 (N, D) - 描述: 地面真相说明, 形状(N, T)
-
-        返回: - 评分: 形状(N, T, V) 的每个时间步骤的每个标记的评分
+        给定图像特征 features（N,D）和完整真实描述 captions（N,T），计算每个时间步的词表评分 scores（N,T,V）。由于训练时一次传入整段序列，必须屏蔽未来时间步，避免提前看到后面的词。
         """
         N, T = captions.shape
         # Create a placeholder, to be overwritten by your code below.
-        # [中文] 创建一个占位符, 由下面的代码覆盖。
+        # [中文] 创建占位值，后续由你实现的代码覆盖。
         scores = torch.empty((N, T, self.vocab_size))
         ############################################################################
         # TODO: Implement the forward function for CaptionTransformer.             #
@@ -113,14 +105,27 @@ class CaptioningTransformer(nn.Module):
         #  3) Finally, apply the decoder features on the text & image embeddings   #
         #     along with the tgt_mask. Project the output to scores per token      #
         ############################################################################
-        # [中文] TODO: 执行描述转换后的前方函数。 几个提示:1) 您首先必须嵌入您的描述并添加位置编码。 然后您必须将图像特性投影到相同的维度中
-        #。2(你必须准备一个面具)(tgt_mask)以掩盖描述中的未来时间步骤。torch.tril()函数可能有助于准备此掩码。 NAME OF
-        # TRANSLATORS3最后,在文本和图像嵌入中应用解码器特性tgt_mask。将输出投进到每个标记的分数
+        # [中文] 待完成：实现图像描述 Transformer 的前向传播。原题提示：先对描述序列做词嵌入并添加位置编码，将图像特征投影到同一嵌入维度；再构造
+        # tgt_mask，屏蔽未来时间步，可参考 torch.tril()；最后将文本、图像嵌入与掩码送入解码器，并将输出投影成各 token 的词表评分。
+        captions_emb = self.embedding(captions)
+        captions_emb = self.positional_encoding(captions_emb)
+        features_emb = self.visual_projection(features).unsqueeze(1)
 
+        tgt_mask = torch.tril(
+            torch.ones(T, T, device=captions.device)
+        )
+
+        output = self.transformer(
+            tgt=captions_emb,
+            memory=features_emb,
+            tgt_mask=tgt_mask
+        )
+
+        scores = self.output(output)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
 
         return scores
 
@@ -137,22 +142,18 @@ class CaptioningTransformer(nn.Module):
 
 
         中文对照：
-        鉴于图像特征,使用贪婪的解码来预测图像描述。
-
-        输入: - 特征: 图像特征, 形状 (N, D) - max_length: 最大可能的描述长度
-
-        返回: - 描述: 形状 (N, max_length) 的每个示例的描述
+        给定图像特征，用贪心解码生成描述，每个时间步选择当前评分最高的 token。features 为 (N,D)，max_length 控制最大生成长度；返回词索引序列。
         """
         with torch.no_grad():
             features = torch.Tensor(features)
             N = features.shape[0]
 
             # Create an empty captions tensor (where all tokens are NULL).
-            # [中文] 创建空描述“抗拉” (where all tokens are NULL)。
+            # [中文] 创建空的 captions 张量，初始所有位置为 NULL 标记。
             captions = self._null * np.ones((N, max_length), dtype=np.int32)
 
             # Create a partial caption, with only the start token.
-            # [中文] 创建部分描述, 仅使用起始标记。
+            # [中文] 创建只含开始标记的初始描述序列。
             partial_caption = self._start * np.ones(N, dtype=np.int32)
             partial_caption = torch.LongTensor(partial_caption)
             # [N] -> [N, 1]
@@ -161,17 +162,17 @@ class CaptioningTransformer(nn.Module):
             for t in range(max_length):
 
                 # Predict the next token (ignoring all other time steps).
-                # [中文] 预测下一个符号 (ignoring all other time steps)。
+                # [中文] 仅预测下一个 token，忽略其他时间步的预测。
                 output_logits = self.forward(features, partial_caption)
                 output_logits = output_logits[:, -1, :]
 
                 # Choose the most likely word ID from the vocabulary.
                 # [N, V] -> [N]
-                # [中文] 从词汇中选择最可能的单词 ID。
+                # [中文] 从词表中选择预测概率最大的词索引。
                 word = torch.argmax(output_logits, axis=1)
 
                 # Update our overall caption and our current partial caption.
-                # [中文] 更新我们的总描述和我们目前的部分描述。
+                # [中文] 更新完整描述及当前部分描述序列。
                 captions[:, t] = word.numpy()
                 word = word.unsqueeze(1)
                 partial_caption = torch.cat([partial_caption, word], dim=1)
@@ -221,7 +222,7 @@ class VisionTransformer(nn.Module):
 
 
     中文对照：
-    愿景转换器 (ViT) 执行。
+    Vision Transformer（ViT）的实现。
     """
     def __init__(self, img_size=32, patch_size=8, in_channels=3,
                  embed_dim=128, num_layers=6, num_heads=4,
@@ -240,7 +241,7 @@ class VisionTransformer(nn.Module):
 
 
         中文对照：
-        投入: -img_size: 输入图像的大小(assumed square) . -  patch_size: 每个补丁的大小(assumed square) . -  in_channels:图像频道的数量。 - embed_dim每个补丁的嵌入维度。 - num_layers: 变换编码器层的数目。 - num_heads:关注的负责人人数。dim_feedforward: 向导网络的隐藏大小。 - num_classes: 分类标签数量。 - Dropout（随机失活）:  Dropout（随机失活）概率。
+        初始化 ViT。img_size、patch_size 为正方形图片与图像块边长，in_channels 为通道数，embed_dim 为图像块嵌入维度；num_layers、num_heads 为编码器层数和头数，dim_feedforward 为前馈网络隐藏维度，num_classes 为类别数，dropout 为随机失活概率。
         """
         super().__init__()
         self.num_classes = num_classes
@@ -251,7 +252,7 @@ class VisionTransformer(nn.Module):
         self.transformer = TransformerEncoder(encoder_layer, num_layers=num_layers)
 
         # Final classification layer to predict class scores from pooled token.
-        # [中文] 最终分类层 以预测类分数 从池化后的 token。
+        # [中文] 最终分类层根据池化后的特征生成各类别评分。
         self.head = nn.Linear(embed_dim, num_classes)
 
         self.apply(self._init_weights)
@@ -263,7 +264,7 @@ class VisionTransformer(nn.Module):
 
 
         中文对照：
-        初始化网络的权重。
+        初始化网络权重。
         """
         if isinstance(module, (nn.Linear, nn.Embedding)):
             module.weight.data.normal_(mean=0.0, std=0.02)
@@ -285,11 +286,7 @@ class VisionTransformer(nn.Module):
 
 
         中文对照：
-         愿景转换器 前向传播。
-
-        输入数: - x: 输入图像的形状 (N, C, H, W)
-
-        返回: - 登录: 形状 (N, num_classes) 的输出分类登录
+        ViT 前向传播。输入 x 为 (N,C,H,W) 的图片张量，输出 logits 为每张图片的类别评分。
         """
         N = x.size(0)
         logits = torch.zeros(N, self.num_classes, device=x.device)
@@ -303,14 +300,17 @@ class VisionTransformer(nn.Module):
         #    You may find torch.mean useful.                                      #
         # 5. Feed it through a linear layer to produce class logits.              #
         ############################################################################
-        # [中文] TODO:
-        # 执行前向传播愿景转换器。1。将输入图像转换成补丁矢量序列。2。添加位置编码以保留空间信息。3。通过转换器编码器传送序列。4。平均的池状补丁矢量为每个图像获取一个特征向量。您可能会发现torch.mean有用
-        #。5。通过线性层喂养它,以生成类登录。
-
+        # [中文] 待完成：实现 ViT 前向传播。把图像转换为图像块向量序列，添加位置编码，经 Transformer
+        # 编码器处理后，对图像块向量做平均池化，得到每张图像的特征，再用线性层输出类别 logits。原题提示：平均池化可参考 torch.mean。
+        x_patches = self.patch_embed(x)
+        x_pos = self.positional_encoding(x_patches)
+        x_trans = self.transformer(x_pos)
+        x_pool = x_trans.mean(dim=1)
+        logits = self.head(x_pool)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
 
 
         return logits

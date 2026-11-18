@@ -29,26 +29,24 @@ class GaussianDiffusion(nn.Module):
         # they are on the same device as model parameters.
         # See https://pytorch.org/docs/stable/generated/torch.nn.Module.html
         # Each buffer can be accessed as `self.name`
-        # [中文] 将一些常数登记为缓冲符的辅助函数, 以确保这些常数与模型参数位于同一个设备上。 见
-        # https://pytorch.org/docs/stable/generated/torch.nn.Module.html 每个缓冲符都可以以
-        # `self.name` 身份被访问
+        # [中文] 将常量注册为 buffer，使它们随模型参数迁移到同一设备，并可通过 self.name 访问。相关 Module 文档见英文链接。
         register_buffer = lambda name, val: self.register_buffer(name, val.float())
 
         #############################################################################
         # Noise schedule beta and alpha values
         #############################################################################
-        # [中文] 振动表 贝塔和阿尔法值
+        # [中文] 噪声调度使用的 beta 和 alpha。
         betas = get_beta_schedule(beta_schedule, timesteps)
         self.num_timesteps = int(betas.shape[0])
         alphas = 1.0 - betas
         alphas_cumprod = torch.cumprod(alphas, dim=0)  # alpha_bar_t
-        # [中文]  alpha_bar_t
+        # [中文] 时间步 t 的累计 alpha。
         register_buffer("betas", betas)  # can be accessed as self.betas
-        # [中文] 可用 self.betas 访问
+        # [中文] 可通过 self.betas 访问。
         register_buffer("alphas", alphas)  # can be accessed as self.alphas
-        # [中文] 可用 self.alphas 访问
+        # [中文] 可通过 self.alphas 访问。
         register_buffer("alphas_cumprod", alphas_cumprod)  # self.alphas_cumprod
-        # [中文]  self.alphas_cumprod
+        # [中文] 累计 alpha 数组 self.alphas_cumprod。
 
         #############################################################################
         # Other coefficients needed to transform between x_t, x_0, and noise
@@ -56,7 +54,7 @@ class GaussianDiffusion(nn.Module):
         # x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise
         # where noise is sampled from N(0, 1)
         #############################################################################
-        # [中文] 变化所需的其他系数x_t,  x_0注:根据Eq.(4)及其在Eq中的再补偿。(14),从 N 中取样噪音(0, 1)
+        # [中文] 预计算在带噪图像 x_t、干净图像 x_0 和噪声之间转换所需的系数，对应论文公式 (4) 及公式 (14) 的重参数化；噪声从标准正态分布采样。
         register_buffer("sqrt_alphas_cumprod", torch.sqrt(alphas_cumprod))
         register_buffer(
             "sqrt_one_minus_alphas_cumprod", torch.sqrt(1.0 - alphas_cumprod)
@@ -65,15 +63,13 @@ class GaussianDiffusion(nn.Module):
         # register_buffer(
         #     "sqrt_recipm1_alphas_cumprod", torch.sqrt(1.0 / alphas_cumprod - 1)
         # )
-        # [中文]  register_buffer (" sqrt_recip_alphas_cumprod ",  torch.sqrt(1.0 /
-        # alphas_cumprod) )  register_buffer ( " sqrt_recipm1_alphas_cumprod ",
-        # torch.sqrt(1.0 / alphas_cumprod - 1)
+        # [中文] 英文原注释给出了注册相关预计算系数的示例代码。
 
         #############################################################################
         # For posterior q(x_{t-1} | x_t, x_0) according to Eq. (6) and (7) of the paper.
         #############################################################################
         # alpha_bar_{t-1}
-        # [中文] 根据论文的 Eq. (6) 和 (7),对于后方 q(xt- 1 } x_t, x_0。 alpha_bar_ {t-1}
+        # [中文] 按论文公式 (6)、(7) 计算后验分布 q(x_{t-1}|x_t,x_0) 所需的系数，其中使用前一个时间步的累计 alpha。
         alphas_cumprod_prev = nn.functional.pad(alphas_cumprod[:-1], (1, 0), value=1.0)
         register_buffer(
             "posterior_mean_coef1",
@@ -90,7 +86,7 @@ class GaussianDiffusion(nn.Module):
         #################################################################
         # loss weight
         #################################################################
-        # [中文] 损 重
+        # [中文] 损失权重。
         snr = alphas_cumprod / (1 - alphas_cumprod)
         loss_weight = torch.ones_like(snr) if objective == "pred_noise" else snr
         register_buffer("loss_weight", loss_weight)
@@ -112,7 +108,7 @@ class GaussianDiffusion(nn.Module):
 
 
         中文对照：
-        滚开x_start从x_t和噪音 根据Eq。(14)说明:x_t:  (b, *)高压。 吵闹的图像。 t:(b,)时间步骤 噪音:(b, *)来自N的噪音(0, 1)返回:x_start:  (b, *)压力 开始图像
+        按论文公式 (14)，由带噪图像 x_t、时间步 t 和噪声预测恢复干净图像 x_start；输入输出形状见英文参数说明。
         """
         x_start = None
         ####################################################################
@@ -120,8 +116,11 @@ class GaussianDiffusion(nn.Module):
         # Transform x_t and noise to get x_start according to Eq.(4) and Eq.(14).
         # Look at the coeffs in `__init__` method and use the `extract` function.
         ####################################################################
-        # [中文] 变换( T)x_t和噪音得到x_start根据Eq.(4)页:1(14)。看看在`__init__`方法及方法的使用`extract`函数。
+        # [中文] 待完成：根据论文公式 (4)、(14)，从 x_t 和噪声恢复 x_start。原题提示：查阅 __init__ 中预计算的系数，并使用 extract 函数。
+        sqrt_one_minus_alphas_cumprod = extract(self.sqrt_one_minus_alphas_cumprod, t, x_t.shape)
+        sqrt_alphas_cumprod = extract(self.sqrt_alphas_cumprod, t, x_t.shape)
 
+        x_start = (x_t - sqrt_one_minus_alphas_cumprod * noise) / sqrt_alphas_cumprod
         ####################################################################
         return x_start
 
@@ -136,7 +135,7 @@ class GaussianDiffusion(nn.Module):
 
 
         中文对照：
-        获取噪音来自@ info: whatsthisx_t和x_start根据Eq.(14)说明:x_t:  (b, *)高压。 吵闹的图像。 t:(b,)时间步态。x_start:  (b, *)拖动。 开始图像。 返回:pred_noise:  (b, *)压力 预言噪音
+        按论文公式 (14)，由带噪图像 x_t、时间步 t 和干净图像 x_start 求出噪声；输入输出形状见英文参数说明。
         """
         pred_noise = None
         ####################################################################
@@ -144,8 +143,11 @@ class GaussianDiffusion(nn.Module):
         # Transform x_t and noise to get x_start according to Eq.(4) and Eq.(14).
         # Look at the coeffs in `__init__` method and use the `extract` function.
         ####################################################################
-        # [中文] 变换( T)x_t和噪音得到x_start根据Eq.(4)页:1(14)。看看在`__init__`方法及方法的使用`extract`函数。
-
+        # [中文] 待完成：根据论文公式 (4)、(14)，从 x_t 和噪声恢复 x_start。原题提示：查阅 __init__ 中预计算的系数，并使用 extract 函数。
+        sqrt_one_minus_alphas_cumprod = extract(self.sqrt_one_minus_alphas_cumprod, t, x_t.shape)
+        sqrt_alphas_cumprod = extract(self.sqrt_alphas_cumprod, t, x_t.shape)
+        
+        pred_noise = (x_t - sqrt_alphas_cumprod * x_start) / sqrt_one_minus_alphas_cumprod
         ####################################################################
         return pred_noise
 
@@ -161,13 +163,13 @@ class GaussianDiffusion(nn.Module):
 
 
         中文对照：
-        获取后端 q(xt-)1 } |  x_t,  x_0)根据Eq.(6)和(7)说明:x_start:  (b, *)压力,预言的开始图像。x_t:  (b, *)高压。 吵闹的图像。 t:(b,)拖拉。 时间步骤。 返回:posterior_mean:  (b, *)强力 后遗症的本性posterior_std:  (b, *)后院的石膏
+        按论文公式 (6)、(7)，计算后验分布 q(x_{t-1}|x_t,x_0) 的参数。输入为预测的干净图像、当前带噪图像和时间步，返回相关后验统计量。
         """
         posterior_mean = None
         posterior_std = None
         ####################################################################
         # We have already implemented this method for you.
-        # [中文] 我们已经为你们采用了这种方法。
+        # [中文] 该方法已提供完整实现。
         c1 = extract(self.posterior_mean_coef1, t, x_t.shape)
         c2 = extract(self.posterior_mean_coef2, t, x_t.shape)
         posterior_mean = c1 * x_start + c2 * x_t
@@ -187,11 +189,11 @@ class GaussianDiffusion(nn.Module):
 
 
         中文对照：
-        根据论文的 Eq. (6), p(x)Qt- 1 } x_t 样本。 仅在推断时使用。 参考: x_t: (b, *) 发声。 噪音图像。 t: int. 抽样时间步骤。 model_kwargs: 模型的额外参数。 返回: x_tm1:(b, *) 发音。 抽样图像。
+        推理时按论文公式 (6) 从 p(x_{t-1}|x_t) 采样，完成一次去噪步骤。输入包括当前带噪图像 x_t、时间步和条件信息，参数形状见英文列表。
         """
         t = torch.full((x_t.shape[0],), t, device=x_t.device, dtype=torch.long)  # (b,)
         x_tm1 = None  # sample x_{t-1} from p(x_{t-1} | x_t)
-        # [中文] 样本 xt - 1 } p( xt- 1 } x_t )
+        # [中文] 从 p(x_{t-1}|x_t) 中采样 x_{t-1}。
 
         ##################################################################
         # TODO: Implement the sampling step p(x_{t-1} | x_t) according to Eq. (6):
@@ -206,11 +208,21 @@ class GaussianDiffusion(nn.Module):
         #   4. Get the mean and std for q(x_{t-1} | x_t, x_0) using self.q_posterior,
         #      and sample x_{t-1}.
         ##################################################################
-        # [中文] TODO: 执行取样步骤 p(x)\\ t-1 } |  x_t)根据Eq.(6): -
-        # 步骤:1。通过调用来获得模型预测self.model有适当的参数。2。模型输出可以是噪音,也可以是x_start取决于self.objective。您可以通过拨打self.predict_start_from_noise或self.predict_noise_from_start视需要而定。3。x_start至有效区域
-        # [-1,  1这样做可确保代代相传期间保持稳定。4。得到平均值和标准为 q(x)t-1 } |  x_t,  x_0)
-        # 使用self.q_posterior,以及样本 xt-1 }.
-        
+        # [中文] 待完成：实现公式 (6) 中的反向采样步骤。调用 self.model 获得预测，根据 self.objective 判断预测的是噪声还是
+        # x_start，必要时用已有转换函数求另一个量。将预测的 x_start 限制在 [-1,1]，再用 self.q_posterior 求后验均值与标准差，采样得到
+        # x_{t-1}。
+        model_output = self.model(x_t, t, model_kwargs)
+        if self.objective == "pred_noise":
+            x_start = self.predict_start_from_noise(x_t, t, model_output)
+        else:
+            x_start = model_output
+
+        x_start = x_start.clamp(-1, 1)
+
+        posterior_mean, posterior_std = self.q_posterior(x_start, x_t, t)
+        noise = torch.randn_like(x_t)
+
+        x_tm1 = posterior_mean + posterior_std * noise
         ##################################################################
 
         return x_tm1
@@ -246,9 +258,7 @@ class GaussianDiffusion(nn.Module):
 
 
         中文对照：
-        根据论文Eq.(4)从q( x_t  x_0)样本。
-
-        参数:x_start:  (b, *)启动图像。 t:(b,)时间步骤 噪音:(b, *)来自N的噪音(0, 1)返回:x_t:  (b, *)高压 吵闹的图像
+        按论文公式 (4) 从 q(x_t|x_0) 采样：根据干净图像、时间步及噪声生成对应的带噪图像。
         """
 
         x_t = None
@@ -261,10 +271,12 @@ class GaussianDiffusion(nn.Module):
         # can be done as: x_t = mu + sigma * noise where noise is sampled from N(0, 1).
         # Approximately 3 lines of code.
         ####################################################################
-        # [中文] TODO: 从q( 执行取样)x_t  |  x_0)根据Eq.(4)提示:(1)看着`__init__`用于查看预先计算系数的方法。 NAME OF
-        # TRANSLATORS(2)使用`extract`函数,以提取给定时间步骤的系数`t` .  (3)回顾N(mu),Sigma的取样2(b)
-        # 可采取下列行动:x_t= mu + sigma * 从 N 取样噪音的噪音(0, 1)大约3代码行。
-
+        # [中文] 待完成：按论文公式 (4) 从 q(x_t|x_0) 采样。原题提示：使用 __init__ 中预计算的系数和 extract 函数取出时间步 t
+        # 对应的值；高斯采样可写为均值加标准差乘以标准正态噪声。参考实现约三行。
+        sqrt_alpha = extract(self.sqrt_alphas_cumprod, t, x_start.shape)
+        sqrt_one_minus_alpha = extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
+    
+        x_t = sqrt_alpha * x_start + sqrt_one_minus_alpha *  noise
         ####################################################################
         return x_t
 
@@ -285,9 +297,10 @@ class GaussianDiffusion(nn.Module):
         # Finally, compute the weighted MSE loss.
         # Approximately 3-4 lines of code.
         ####################################################################
-        # [中文] TODO: 根据论文的 Eq. (14) 执行损失函数。 首先, 使用 `q_sample` 函数从 q ( x_t ) < \\\\ > x_0 样本
-        # x_t。 然后, 通过调用 self.model 和适当的参数来获得模型预测。 最后, 计算加权 MSE 损失。 大约 3 - 4 代码行。
-
+        # [中文] 待完成：实现论文公式 (14) 的损失。先调用 q_sample 采样 x_t，再调用模型得到预测，最后计算加权均方误差。参考实现约三至四行。
+        x_t = self.q_sample(x_start, t, noise)
+        prediction = self.model(x_t, t, model_kwargs)
+        loss = (loss_weight * (prediction - target) ** 2).mean()
         ####################################################################
 
         return loss
@@ -312,22 +325,16 @@ def extract(a, t, x_shape):
 
 
     中文对照：
-    根据给定的时间步骤抽取适当的系数值。
-
-    此函数根据给定的时间步骤 `t` 收集系数抗拉 `a` 的值,并重塑这些值,使其与要求的形状匹配,从而支持以给定形状 `x_shape` 的抗拉进行广播。
-
-    参数: a ( torch.Tensor ): 形状 (T,) 的发光体, 包含所有时间步骤的系数值。 t ( torch.Tensor ): 形状 (b,) 的发热体, 代表每批样本的时间步骤。 x_shape (tuple): 输入图像发光体的形状, 通常是 (b, c, h, w)。
-
-    返回: torch.Tensor:一个形状 (b, 1, 1, 1) 的柱状,包含每个批量元素相应时间步骤的抽取系数值,并相应调整。
+    从系数数组 a（T,）中，为批内各样本取出其时间步 t（b,）对应的系数，再调整为可与 x_shape 广播的形状。对于图像批量，返回形状为 (b,1,1,1)。
     """
     b, *_ = t.shape  # Extract batch size from the timestep tensor
-    # [中文] 从时间步骤强度中提取批量大小
+    # [中文] 从时间步张量中读取批大小。
     out = a.gather(-1, t)  # Gather the coefficient values from `a` based on `t`
-    # [中文] 根据 `t` 从 `a` 收集系数值
+    # [中文] 按时间步 t，从 a 中取出对应系数。
     out = out.reshape(
         b, *((1,) * (len(x_shape) - 1))
     )  # Reshape to (b, 1, 1, 1) for broadcasting
-    # [中文] 重塑为 (b, 1, 1, 1)用于广播
+    # [中文] 将形状调整为 (b,1,1,1)，以便广播。
     return out
 
 
@@ -337,7 +344,7 @@ def linear_beta_schedule(timesteps):
 
 
     中文对照：
-    线性排程, 在原始 ddpm 论文中提议
+    原始 DDPM 论文采用的线性噪声调度。
     """
     scale = 1000 / timesteps
     beta_start = scale * 0.0001
@@ -352,7 +359,7 @@ def cosine_beta_schedule(timesteps, s=0.008):
 
 
     中文对照：
-    https://openreview.net/forum?id=-NEXDKk8gZ 中提议的余弦计划
+    余弦噪声调度，相关论文链接见英文原注释。
     """
     steps = timesteps + 1
     t = torch.linspace(0, timesteps, steps, dtype=torch.float64) / timesteps
@@ -370,7 +377,7 @@ def sigmoid_beta_schedule(timesteps, start=-3, end=3, tau=1, clamp_min=1e-5):
 
 
     中文对照：
-    在 https://arxiv.org/abs/2212.11972 - 图 8 中为图像 > 64x64 推荐的sigmoid 计划,如果在训练期间使用的话
+    Sigmoid 噪声调度，来源见英文链接中的图 8；论文建议训练较大分辨率图像（超过 64×64）时考虑使用。
     """
     steps = timesteps + 1
     t = torch.linspace(0, timesteps, steps, dtype=torch.float64) / timesteps

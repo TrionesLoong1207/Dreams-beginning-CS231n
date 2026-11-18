@@ -62,27 +62,7 @@ class CaptioningSolver(object):
 
 
     中文对照：
-    描述求解包含训练图像字幕模型所需的全部逻辑。 描述求灵符使用 optim.py 中定义的不同更新规则进行随机梯度下降。
-
-    求解器接受训练和有效数据及标签,以便能定期检查训练和验证数据的分类准确性,以警惕是否过配。
-
-    要训练模型,您将首先构建一个描述求解实例, 将模型、 数据集和各种选项 (learning rate, batch size, etc) 传递给构建者。 然后您将调用火车 () 方法来运行优化程序并训练模型。
-
-    火车法返回后,model.params将包含在训练过程中对认证集进行最佳表现的参数。此外,实例变量solver.loss_history将包含训练过程中遇到的所有损失和实例变量列表solver.train_acc_history和solver.val_acc_history将列出每个训练轮次的训练和验证模式的准确率。
-
-    示例用法可能看起来是这样的:
-
-    数据 =load_coco_data() 型号 = MyAwesome 模型 ()hidden_dim = 100求解器 = 描述求解( 模型, 数据, )update_rule = 'sgd',  optim_config ={  'learning_rate':  1e-3, },  lr_decay = 0.95,  num_epochs = 10,  batch_size = 100,  print_every = 100 )  solver.train()
-
-     描述求解在必须符合下列 API 的模型对象上工作:
-
-    - model.params 必须是一个字典映射字符串参数名称, 以包含参数值的缩放数组。
-
-    - model.loss(features, captions) 必须是一个计算训练时间损失和梯度的函数,包含以下投入和产出:
-
-    输入: - 特征: 提供图像、 形状( N、 D - 说明: 图像描述的排列, 形状 (N, T), 其中每个元素都位于范围 ( 0, V)。
-
-    返回: - 损失: 标量 给出损失 - 梯度: 与self.params绘图参数名称为这些参数的损失梯度。
+    封装图像描述模型的训练过程，使用 optim.py 中的更新规则执行随机梯度优化。创建训练器后调用 train()，损失历史等记录供观察训练情况；模型接口与示例见英文原文。
     """
 
     def __init__(self, model, data, **kwargs):
@@ -112,17 +92,13 @@ class CaptioningSolver(object):
 
 
         中文对照：
-        构造一个新的描述求解实例。
-
-        所需参数: - 模型: 符合上述 API 的模型对象 - 数据: load_coco_data 的训练和验证数据词典
-
-        任择论点: -update_rule: 显示更新规则名称的字符串optim.py默认值'sgd' . -  optim_config:包含超参数的字典将传送到选定的更新规则。每个更新规则都需要不同的超参数(见optim.py)但所有更新规则都要求'learning_rate'参数,所以该参数应该始终存在。 - lr_decay:学习率的浮点数衰减;在每一个训练轮次之后,学习率乘以这个数值。 -batch_size:用于计算训练期间损失和梯度的微型蓄水池的大小。num_epochs:训练期间要运行的训练轮次数。 - print_every:整数;训练损失 打印每个 print_every 迭代。 - 动词: Boulean; 如果设置为假, 在训练期间不会打印输出。
+        构造图像描述训练器。model 为满足接口约定的模型，data 为 COCO 数据；update_rule、optim_config、lr_decay、batch_size、num_epochs 等用于配置优化规则、学习率、批大小与训练轮数，具体可选项见英文列表。
         """
         self.model = model
         self.data = data
 
         # Unpack keyword arguments
-        # [中文] 卸载关键词参数
+        # [中文] 解包关键字参数。
         self.update_rule = kwargs.pop("update_rule", "sgd")
         self.optim_config = kwargs.pop("optim_config", {})
         self.lr_decay = kwargs.pop("lr_decay", 1.0)
@@ -133,14 +109,14 @@ class CaptioningSolver(object):
         self.verbose = kwargs.pop("verbose", True)
 
         # Throw an error if there are extra keyword arguments
-        # [中文] 如果存在额外关键字参数, 丢弃错误
+        # [中文] 如果传入了多余的关键字参数，则报错。
         if len(kwargs) > 0:
             extra = ", ".join('"%s"' % k for k in list(kwargs.keys()))
             raise ValueError("Unrecognized arguments %s" % extra)
 
         # Make sure the update rule exists, then replace the string
         # name with the actual function
-        # [中文] 确保更新规则存在, 然后用实际函数替换字符串名称
+        # [中文] 确认更新规则存在，再将其字符串名称替换为对应函数。
         if not hasattr(optim, self.update_rule):
             raise ValueError('Invalid update_rule "%s"' % self.update_rule)
         self.update_rule = getattr(optim, self.update_rule)
@@ -154,10 +130,10 @@ class CaptioningSolver(object):
 
 
         中文对照：
-        设置一些用于优化的簿记变量。 不要手工调用它。
+        初始化优化过程所需的记录变量；不应手动调用该方法。
         """
         # Set up some variables for book-keeping
-        # [中文] 为簿记设置一些变量
+        # [中文] 初始化用于记录训练过程的变量。
         self.epoch = 0
         self.best_val_acc = 0
         self.best_params = {}
@@ -166,7 +142,7 @@ class CaptioningSolver(object):
         self.val_acc_history = []
 
         # Make a deep copy of the optim_config for each parameter
-        # [中文] 为每个参数制作一个 optim_config 的深度副本
+        # [中文] 为每个参数深拷贝一份 optim_config。
         self.optim_configs = {}
         for p in self.model.params:
             d = {k: v for k, v in self.optim_config.items()}
@@ -179,22 +155,22 @@ class CaptioningSolver(object):
 
 
         中文对照：
-        做一个单一的梯度更新。 这是由列车 () 命名的, 不应该手工命名。
+        执行一次梯度更新；该方法由 train() 调用，不应手动调用。
         """
         # Make a minibatch of training data
-        # [中文] 制作少量的训练数据
+        # [中文] 构造一个训练用的小批量。
         minibatch = sample_coco_minibatch(
             self.data, batch_size=self.batch_size, split="train"
         )
         captions, features, urls = minibatch
 
         # Compute loss and gradient
-        # [中文] 计算损失和梯度
+        # [中文] 计算损失及其梯度。
         loss, grads = self.model.loss(features, captions)
         self.loss_history.append(loss)
 
         # Perform a parameter update
-        # [中文] 执行参数更新
+        # [中文] 执行一次参数更新。
         for p, w in self.model.params.items():
             dw = grads[p]
             config = self.optim_configs[p]
@@ -220,16 +196,12 @@ class CaptioningSolver(object):
 
 
         中文对照：
-        检查所提供数据的模型的准确性。
-
-        输入: - X: 数据、形状( N, d_1,..., d_k ) - y: 标签、形状 (N,) - num_samples 的数组: 如果不是无, 则在 num_samples 数据点上分样数据, 并且只测试模型。 - batch_size: 将X 和 y 拆分成这样大小的批次, 以避免使用过多的内存。
-
-        返回: - acc: 标量 给出按模型正确分类的事例的分数。
+        评估模型在给定 X、y 上的分类准确率。X 的首维为样本数，y 为对应标签；num_samples 可用于抽样评估，batch_size 控制预测时的小批量大小。返回预测正确的比例。
         """
         return 0.0
 
         # Maybe subsample the data
-        # [中文] 也许分样的数据
+        # [中文] 按需截取一部分数据。
         N = X.shape[0]
         if num_samples is not None and N > num_samples:
             mask = np.random.choice(N, num_samples)
@@ -238,7 +210,7 @@ class CaptioningSolver(object):
             y = y[mask]
 
         # Compute predictions in batches
-        # [中文] 按批次计算预测
+        # [中文] 分小批量计算预测结果。
         num_batches = N / batch_size
         if N % batch_size != 0:
             num_batches += 1
@@ -259,7 +231,7 @@ class CaptioningSolver(object):
 
 
         中文对照：
-        运行优化来训练模型。
+        运行优化过程以训练模型。
         """
         num_train = self.data["train_captions"].shape[0]
         iterations_per_epoch = max(num_train // self.batch_size, 1)
@@ -269,7 +241,7 @@ class CaptioningSolver(object):
             self._step()
 
             # Maybe print training loss
-            # [中文] 也许是印刷训练损失
+            # [中文] 按设置决定是否打印训练损失。
             if self.verbose and t % self.print_every == 0:
                 print(
                     "(Iteration %d / %d) loss: %f"
@@ -278,7 +250,7 @@ class CaptioningSolver(object):
 
             # At the end of every epoch, increment the epoch counter and decay the
             # learning rate.
-            # [中文] 在每个训练轮次的末期, 不断递增的训练轮次反面 和衰败的学习率。
+            # [中文] 每个 epoch 结束时，将 epoch 计数加一，并衰减学习率。
             epoch_end = (t + 1) % iterations_per_epoch == 0
             if epoch_end:
                 self.epoch += 1

@@ -44,7 +44,7 @@ def load_coco_data(base_dir=BASE_DIR, max_train=None, pca_features=True):
     data["val_urls"] = val_urls
 
     # Maybe subsample the training data
-    # [中文] 也许分样了训练数据
+    # [中文] 按需截取一部分训练数据。
     if max_train is not None:
         num_train = data["train_captions"].shape[0]
         mask = np.random.randint(num_train, size=max_train)

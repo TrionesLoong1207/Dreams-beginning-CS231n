@@ -11,13 +11,13 @@ def compute_train_transform(seed=123456):
 
 
     中文对照：
-    此函数返回单个训练图像中数据增强的构成。 完成以下行。 提示: 查看 torchvision.transforms 中的可用函数
+    返回应用于单张训练图片的数据增强组合。补全指定变换，原题提示参考 torchvision.transforms；具体步骤见调用处的说明。
     """
     random.seed(seed)
     torch.random.manual_seed(seed)
     
     # Transformation that applies color jitter with brightness=0.4, contrast=0.4, saturation=0.4, and hue=0.1
-    # [中文] 应用颜色抖动的亮度= 0.4 、对比度= 0.4 、饱和度=0.4 和hue= 0.1 的转换
+    # [中文] 颜色扰动变换：brightness=0.4、contrast=0.4、saturation=0.4、hue=0.1。
     color_jitter = transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)  
     
     train_transform = transforms.Compose([
@@ -28,22 +28,21 @@ def compute_train_transform(seed=123456):
         # The first operation is filled out for you as an example.
         ##############################################################################
         # Step 1: Randomly resize and crop to 32x32.
-        # [中文] TODO: 启动您的代码。 提示: 检查 torchvision.transforms 中定义的转换函数。 第一个操作被填充为示例。 步骤 1:
-        # 随机调整大小和裁剪为 32x32。
+        # [中文] 待完成：定义数据增强，参考 torchvision.transforms。第一个操作已提供作为示例：随机缩放并裁剪到 32×32。
         transforms.RandomResizedCrop(32),
         # Step 2: Horizontally flip the image with probability 0.5
-        # [中文] 步骤 2: 水平翻转图像, 概率为 0.5
-
+        # [中文] 步骤 2：以 0.5 的概率水平翻转图像。
+        transforms.RandomHorizontalFlip(p=0.5),
         # Step 3: With a probability of 0.8, apply color jitter (you can use "color_jitter" defined above.
-        # [中文] 步数 3: 概率为 0.8 时, 应用颜色杂音( 您可以使用上面定义的 " color_jitter " )。
-
+        # [中文] 步骤 3：以 0.8 的概率应用颜色扰动，可使用上面定义的 color_jitter。
+        transforms.RandomApply([color_jitter], p=0.8),
         # Step 4: With a probability of 0.2, convert the image to grayscale
-        # [中文] 步骤 4: 概率为 0.2 时, 将图像转换为灰度
-
+        # [中文] 步骤 4：以 0.2 的概率将图片转为灰度图。
+        transforms.RandomGrayscale(p=0.2),
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
         transforms.ToTensor(),
         transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
     return train_transform
@@ -60,7 +59,7 @@ class CIFAR10Pair(CIFAR10):
 
 
     中文对照：
-    CIFAR10 数据集。
+    CIFAR-10 数据集。
     """
     def __getitem__(self, index):
         img, target = self.data[index], self.targets[index]
@@ -75,12 +74,13 @@ class CIFAR10Pair(CIFAR10):
             #                                                                            #
             # Apply self.transform to the image to produce x_i and x_j in the paper #
             ##############################################################################
-            # [中文] TODO: 启动您的代码。 对图像应用 self.transform 来生成论文中的 x_i 和 x_j
-            pass
+            # [中文] 待完成：对同一图像分别应用 self.transform，生成论文中的两个增强视图 x_i 和 x_j。
+            x_i = self.transform(img)
+            x_j = self.transform(img)
             ##############################################################################
             #                               END OF YOUR CODE                             #
             ##############################################################################
-            # [中文] 代码结束
+            # [中文] 自行实现的代码区域结束。
 
         if self.target_transform is not None:
             target = self.target_transform(target)

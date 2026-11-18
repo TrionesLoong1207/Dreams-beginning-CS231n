@@ -15,11 +15,7 @@ def affine_relu_forward(x, w, b):
 
 
     中文对照：
-    方便度层, 绕行折叠变形, 之后是 RELU。 @ info: whatsthis
-
-    输入数: - x: 输入角层- w, b: 角层的权重
-
-    返回一个图普: - 退出: 从 RELU - 缓存中输出: 要给给 反向传播 的对象
+    将仿射变换与 ReLU 封装为一个组合层。x 是输入，w、b 是仿射层权重和偏置；返回 ReLU 后的 out，以及反向传播所需的 cache。
     """
     a, fc_cache = affine_forward(x, w, b)
     out, relu_cache = relu_forward(a)
@@ -33,7 +29,7 @@ def affine_relu_backward(dout, cache):
 
 
     中文对照：
-     松脂便利层 反向传播
+    仿射层与 ReLU 组合层的反向传播。
     """
     fc_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)

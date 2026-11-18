@@ -27,11 +27,7 @@ class KNearestNeighbor(object):
 
 
         中文对照：
-        训练分类器。对于 k 近邻分类器，训练阶段只需保存训练数据。
-
-        输入：
-        - X：形状为 (num_train, D) 的 NumPy 数组，包含 num_train 个训练样本，每个样本有 D 个维度。
-        - y：形状为 (N,) 的 NumPy 数组，包含训练标签；y[i] 是 X[i] 的标签。
+        kNN 的训练阶段只保存数据。X 为 (num_train,D) 的训练样本数组，y 为一维标签数组；y[i] 是 X[i] 的类别。
         """
         self.X_train = X
         self.y_train = y
@@ -53,15 +49,7 @@ class KNearestNeighbor(object):
 
 
         中文对照：
-        使用此分类器预测测试数据的标签。
-
-        输入：
-        - X：形状为 (num_test, D) 的 NumPy 数组，包含 num_test 个测试样本，每个样本有 D 个维度。
-        - k：参与投票以确定预测标签的最近邻数量。
-        - num_loops：决定使用哪一种实现来计算训练点与测试点之间的距离。
-
-        返回值：
-        - y：形状为 (num_test,) 的 NumPy 数组；y[i] 是测试点 X[i] 的预测标签。
+        预测测试数据的标签。X 为 (num_test,D)，k 为参与投票的最近邻数量；num_loops 选择距离计算的实现。返回长度为 num_test 的预测标签数组。
         """
         if num_loops == 0:
             dists = self.compute_distances_no_loops(X)
@@ -90,11 +78,7 @@ class KNearestNeighbor(object):
 
 
         中文对照：
-        计算 X 中每个测试点与 self.X_train 中每个训练点之间的距离。使用双重嵌套循环，分别遍历测试数据与训练数据。
-
-        输入：X 是形状为 (num_test, D) 的 NumPy 数组，包含测试数据。
-
-        返回值：dists 是形状为 (num_test, num_train) 的 NumPy 数组，其中 dists[i, j] 是第 i 个测试点与第 j 个训练点之间的欧氏距离。
+        对测试样本和训练样本分别使用一层循环，计算 X 中每个测试样本与 self.X_train 中每个训练样本的欧氏距离。输入 X 为 (num_test,D)，输出 dists 为 (num_test,num_train)，dists[i,j] 对应第 i 个测试样本与第 j 个训练样本。
         """
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
@@ -107,9 +91,10 @@ class KNearestNeighbor(object):
                 # training point, and store the result in dists[i, j]. You should   #
                 # not use a loop over dimension, nor use np.linalg.norm().          #
                 #####################################################################
-                # [中文] 待完成：计算第 i 个测试点与第 j 个训练点之间的 L2 距离，并将结果存入 dists[i, j]。不允许再对特征维度使用循环，也不允许使用
-                # np.linalg.norm()。
-                pass
+                # [中文] 待完成：计算第 i 个测试样本与第 j 个训练样本的 L2 距离，写入 dists[i,j]。不允许再对特征维度使用循环，也不允许使用 np.linalg.norm()。
+                diff = X[i] - self.X_train[j]
+                dist = np.sqrt(np.sum(diff**2))
+                dists[i,j] = dist
         return dists
 
     def compute_distances_one_loop(self, X):
@@ -121,9 +106,7 @@ class KNearestNeighbor(object):
 
 
         中文对照：
-        计算 X 中每个测试点与 self.X_train 中每个训练点之间的距离，仅使用一个循环遍历测试数据。
-
-        输入与输出：与 compute_distances_two_loops 相同。
+        仅对测试样本使用一层循环，计算其到全部训练样本的距离。输入输出与 compute_distances_two_loops 相同。
         """
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
@@ -135,8 +118,9 @@ class KNearestNeighbor(object):
             # points, and store the result in dists[i, :].                        #
             # Do not use np.linalg.norm().                                        #
             #######################################################################
-            # [中文] 待完成：计算第 i 个测试点与所有训练点之间的 L2 距离，将结果存入 dists[i,:]。不允许使用 np.linalg.norm()。
-            pass
+            # [中文] 待完成：一次计算第 i 个测试样本与全部训练样本的 L2 距离，写入 dists[i,:]。不允许使用 np.linalg.norm()。
+            diff = X[i] - self.X_train
+            dists[i,:] = np.sqrt(np.sum(diff**2, axis=1))
         return dists
 
     def compute_distances_no_loops(self, X):
@@ -148,9 +132,7 @@ class KNearestNeighbor(object):
 
 
         中文对照：
-        计算 X 中每个测试点与 self.X_train 中每个训练点之间的距离，不使用显式循环。
-
-        输入与输出：与 compute_distances_two_loops 相同。
+        不使用显式循环，一次计算全部测试样本到全部训练样本的距离。输入输出与 compute_distances_two_loops 相同。
         """
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
@@ -168,10 +150,14 @@ class KNearestNeighbor(object):
         # HINT: Try to formulate the l2 distance using matrix multiplication    #
         #       and two broadcast sums.                                         #
         #########################################################################
-        # [中文] TODO: 计算所有测试点和所有训练点之间的 l2 距离,而不使用任何明确的循环,然后将结果存储为 dists。 您应该只使用基本的数组操作来执行此函数;
-        # 特别是, 您不应该使用来自 scip 的函数, 也不应该使用 np.linalg.norm()。 HINT: 尝试使用矩阵乘法和两个广播总和来构造 l2
-        # 的距离。
-
+        # [中文] 待完成：不使用任何显式循环，计算所有测试样本与所有训练样本的 L2 距离，结果存入 dists。只使用基本数组运算，不调用 scipy 中的距离函数或
+        # np.linalg.norm()。原题提示：将 L2 距离展开为矩阵乘法和两个可通过广播相加的求和项。
+        test_sq = np.sum(X**2, axis=1, keepdims=True)
+        train_sq = np.sum(self.X_train**2, axis=1)
+        cross = X @ self.X_train.T
+        
+        dist_sq = test_sq + train_sq - cross*2
+        dists = np.sqrt(dist_sq)
         return dists
 
     def predict_labels(self, dists, k=1):
@@ -189,18 +175,14 @@ class KNearestNeighbor(object):
 
 
         中文对照：
-        根据测试点与训练点之间的距离矩阵,预测每个测试点的标签。
-
-        输入: - dists: 形状 (num_test, num_train) 的缩略数组,其中 dists[i, j] 给出了 第 i 个 测试点和 第 j 个 训练点的距离。
-
-        返回: - y:一个包含测试数据预测标签的形状(num_test,)的纽扣数组,其中y[i]是测试点X[i]的预测标签。
+        根据距离矩阵预测类别。dists 为 (num_test,num_train)，每行保存一个测试样本到全部训练样本的距离；k 指定参与投票的最近邻数量。返回每个测试样本的预测标签。
         """
         num_test = dists.shape[0]
         y_pred = np.zeros(num_test)
         for i in range(num_test):
             # A list of length k storing the labels of the k nearest neighbors to
             # the ith test point.
-            # [中文] 保存于第 i 个 测试点附近的 k 标签的长度 k 列表。
+            # [中文] 长度为 k 的列表，保存第 i 个测试样本的 k 个最近邻标签。
             closest_y = []
             #########################################################################
             # TODO:                                                                 #
@@ -209,9 +191,12 @@ class KNearestNeighbor(object):
             # neighbors. Store these labels in closest_y.                           #
             # Hint: Look up the function numpy.argsort.                             #
             #########################################################################
-            # [中文] TODO: 使用距离矩阵查找 第 i 个 测试点最近的 k 邻居, 并使用 self.y_train 查找这些邻居的标签。 将这些标签保存在
-            # closest_y 中。 提示: 查找函数 numpy.argsort。
-
+            # [中文] 待完成：根据距离矩阵，找出第 i 个测试样本距离最近的 k 个训练样本，再从 self.y_train 取出它们的标签，存入 closest_y。原题提示：查阅
+            # numpy.argsort。
+            dist_idx = np.argsort(dists[i])
+            k_idx = dist_idx[:k]
+            for j in k_idx:
+                closest_y.append(self.y_train[j])
 
             #########################################################################
             # TODO:                                                                 #
@@ -220,8 +205,7 @@ class KNearestNeighbor(object):
             # Store this label in y_pred[i]. Break ties by choosing the smaller     #
             # label.                                                                #
             #########################################################################
-            # [中文] TODO: 既然您已经找到了 k 最近的邻居的标签, 您就需要在标签列表 closest_y 中找到最常见的标签。 将标签保存在 y_pred [i] 中。
-            # 通过选择小标签来断开链接。
-
-
+            # [中文] 待完成：统计 closest_y 中哪个标签出现次数最多，将该标签存入 y_pred[i]。如果多个标签票数并列，选择编号较小的标签。
+            counts = np.bincount(closest_y)
+            y_pred[i] = np.argmax(counts)
         return y_pred

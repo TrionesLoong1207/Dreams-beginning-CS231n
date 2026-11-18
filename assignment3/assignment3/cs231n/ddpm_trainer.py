@@ -42,7 +42,7 @@ class Trainer(object):
         self.train_num_steps = train_num_steps
 
         # dataset and dataloader
-        # [中文] 数据集和数据装入器
+        # [中文] 数据集与数据加载器。
         self.ds = dataset
         dl = DataLoader(
             self.ds,
@@ -54,7 +54,7 @@ class Trainer(object):
         self.dl = cycle(dl)
 
         # optimizer
-        # [中文] 优化
+        # [中文] 优化器。
         self.opt = Adam(
             diffusion_model.parameters(),
             lr=train_lr,
@@ -66,7 +66,7 @@ class Trainer(object):
         os.makedirs(self.results_folder, exist_ok=True)
 
         # step counter state
-        # [中文] 职档计数状态
+        # [中文] 迭代计数器状态。
         self.step = 0
 
     def save(self, milestone):
@@ -91,7 +91,7 @@ class Trainer(object):
         self.opt.load_state_dict(data["opt"])
 
         # Move model and optimizer to the same device
-        # [中文] 将模型和优化器移动到同一设备
+        # [中文] 将模型与优化器状态移至同一设备。
         device = self.device
         self.diffusion_model.to(device)
         for state in self.opt.state.values():

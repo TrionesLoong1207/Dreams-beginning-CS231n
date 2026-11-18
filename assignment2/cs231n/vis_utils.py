@@ -16,9 +16,7 @@ def visualize_grid(Xs, ubound=255.0, padding=1):
 
 
     中文对照：
-    重塑一个 4D 图像数据到网格, 以便于视觉化。
-
-    输入: - Xs: 形状 (N, H, W, C) 的数据 - 缩放: 输出网格的值将缩放到范围 [0, 缩放] - 粘贴: 网格各元素之间的空白像素数量
+    将 (N,H,W,C) 的图像数据排成网格以便显示。ubound 控制输出数值上界，padding 控制图片间隔，返回可视化网格。
     """
     (N, H, W, C) = Xs.shape
     grid_size = int(ceil(sqrt(N)))
@@ -50,7 +48,7 @@ def vis_grid(Xs):
     """ visualize a grid of images
 
     中文对照：
-    图像网格可视化
+    将多张图像排成网格显示。
     """
     (N, H, W, C) = Xs.shape
     A = int(ceil(sqrt(N)))
@@ -65,7 +63,7 @@ def vis_grid(Xs):
                 ]
                 n += 1
     # normalize to [0,1]
-    # [中文] 正常状态为 [0, 1 ]
+    # [中文] 将数值归一化到 [0,1]。
     maxg = G.max()
     ming = G.min()
     G = (G - ming) / (maxg - ming)
@@ -76,7 +74,7 @@ def vis_nn(rows):
     """ visualize array of arrays of images
 
     中文对照：
-    图像数组可视化
+    将多组图像组成的数组可视化。
     """
     N = len(rows)
     D = len(rows[0])
@@ -87,7 +85,7 @@ def vis_nn(rows):
         for x in range(D):
             G[y * H + y : (y + 1) * H + y, x * W + x : (x + 1) * W + x, :] = rows[y][x]
     # normalize to [0,1]
-    # [中文] 正常状态为 [0, 1 ]
+    # [中文] 将数值归一化到 [0,1]。
     maxg = G.max()
     ming = G.min()
     G = (G - ming) / (maxg - ming)

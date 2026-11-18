@@ -28,18 +28,14 @@ def extract_features(imgs, feature_fns, verbose=False):
 
 
     中文对照：
-    考虑到图像的像素数据和可在单个图像上操作的若干特征,将所有特征应用到所有图像中,将每个图像的特征向量归为一体,并将所有图像的特征存储在一个矩阵中。
-
-    输入: - imgs: N x H X W X C 像素数据数组用于 N 图像。feature_fns: k 特性函数列表。第 i 个特性函数应该将 H x W x D 数组作为输入并返回长度的(一维)数组F_i. - 动词: Boulean;如果是,则打印进度。
-
-    返回:形状数组( N, F_1 +... + F_k ),其中每列是单个图像的所有特征的组合。
+    对 imgs 中每张图片应用 feature_fns 中的特征函数，再将同一张图片的各类特征拼接。imgs 为 (N,H,W,C)，第 i 个函数输出长度为 F_i 的向量。返回形状为 (N,F_1+...+F_k) 的数组，每一行对应一张图片；英文中将其写为每列，与给出的形状不一致。verbose 控制是否显示进度。
     """
     num_images = imgs.shape[0]
     if num_images == 0:
         return np.array([])
 
     # Use the first image to determine feature dimensions
-    # [中文] 使用第一张图像来确定特性尺寸
+    # [中文] 用第一张图片确定特征维度。
     feature_dims = []
     first_image_features = []
     for feature_fn in feature_fns:
@@ -50,13 +46,13 @@ def extract_features(imgs, feature_fns, verbose=False):
 
     # Now that we know the dimensions of the features, we can allocate a single
     # big array to store all features as columns.
-    # [中文] 现在我们知道这些特征的维度, 我们可以分配一个大数组来存储所有的特性作为列。
+    # [中文] 确定特征维度后，一次分配用于存储全部特征的大数组；每一列保存一个样本的特征。
     total_feature_dim = sum(feature_dims)
     imgs_features = np.zeros((num_images, total_feature_dim))
     imgs_features[0] = np.hstack(first_image_features).T
 
     # Extract features for the rest of the images.
-    # [中文] 提取其余图像的特征。
+    # [中文] 为其余图片提取特征。
     for i in range(1, num_images):
         idx = 0
         for feature_fn, feature_dim in zip(feature_fns, feature_dims):
@@ -81,11 +77,7 @@ def rgb2gray(rgb):
 
 
     中文对照：
-    将 RGB 图像转换为灰度
-
-    参数:rgb: RGB 图像
-
-    返回: 灰色: 灰度图像
+    将 RGB 图像转换为灰度图。输入 rgb 是彩色图像，返回 gray 是灰度图像。
     """
     return np.dot(rgb[..., :3], [0.299, 0.587, 0.144])
 
@@ -109,56 +101,48 @@ def hog_feature(im):
 
 
     中文对照：
-    为图像计算梯度 (HOG) 特性的直方图
-
-    从 skimage.feature.hog http://pydoc.net/Python/scikits-image/0.4.2/skimage.feature.hog 修改
-
-    参考:用于人类检测的定向梯度直方图 Navneet Dalal 和 Bill Triggs, CVPR 2005
-
-    参数: im: 输入灰度或 rgb 图像
-
-    返回: 特征: 梯度 (HOG) 特性的直方图
+    为灰度或 RGB 图像提取方向梯度直方图（HOG）特征，返回特征向量 feat。实现改编自 skimage；参考文献为 Dalal、Triggs 的 CVPR 2005 论文，原链接保留在英文说明中。
     """
 
     # convert rgb to grayscale if needed
-    # [中文] 需要时将 rgb 转换为灰度
+    # [中文] 必要时将 RGB 图像转为灰度图。
     if im.ndim == 3:
         image = rgb2gray(im)
     else:
         image = np.at_least_2d(im)
 
     sx, sy = image.shape  # image size
-    # [中文] 图像大小
+    # [中文] 图像尺寸。
     orientations = 9  # number of gradient bins
-    # [中文] 梯度数
+    # [中文] 梯度方向直方图的区间数量。
     cx, cy = (8, 8)  # pixels per cell
-    # [中文] 每个单元格像素
+    # [中文] 每个单元包含的像素数量。
 
     gx = np.zeros(image.shape)
     gy = np.zeros(image.shape)
     gx[:, :-1] = np.diff(image, n=1, axis=1)  # compute gradient on x-direction
-    # [中文] 在 x 方向上计算梯度
+    # [中文] 计算水平方向的梯度。
     gy[:-1, :] = np.diff(image, n=1, axis=0)  # compute gradient on y-direction
-    # [中文] 在 Y 方向上计算梯度
+    # [中文] 计算竖直方向的梯度。
     grad_mag = np.sqrt(gx ** 2 + gy ** 2)  # gradient magnitude
-    # [中文] 梯度大小
+    # [中文] 梯度幅值。
     grad_ori = np.arctan2(gy, (gx + 1e-15)) * (180 / np.pi) + 90  # gradient orientation
-    # [中文] 梯度方向
+    # [中文] 梯度方向。
 
     n_cellsx = int(np.floor(sx / cx))  # number of cells in x
-    # [中文] x 中的单元格数
+    # [中文] 水平方向的单元数量。
     n_cellsy = int(np.floor(sy / cy))  # number of cells in y
     # compute orientations integral images
-    # [中文] y 中计算方向的单元格数
+    # [中文] 竖直方向的单元数量；计算梯度方向的积分图。
     orientation_histogram = np.zeros((n_cellsx, n_cellsy, orientations))
     for i in range(orientations):
         # create new integral image for this orientation
         # isolate orientations in this range
-        # [中文] 创建此方向在此区域中分离方向的新集成图像
+        # [中文] 按当前方向范围筛选梯度，并建立该方向的积分图。
         temp_ori = np.where(grad_ori < 180 / orientations * (i + 1), grad_ori, 0)
         temp_ori = np.where(grad_ori >= 180 / orientations * i, temp_ori, 0)
         # select magnitudes for those orientations
-        # [中文] 选择这些方向的大小
+        # [中文] 选出这些方向对应的梯度幅值。
         cond2 = temp_ori > 0
         temp_mag = np.where(cond2, grad_mag, 0)
         orientation_histogram[:, :, i] = uniform_filter(temp_mag, size=(cx, cy))[
@@ -185,11 +169,7 @@ def color_histogram_hsv(im, nbin=10, xmin=0, xmax=255, normalized=True):
 
 
     中文对照：
-    使用 hue 计算图像的颜色直方图。
-
-    输入数: - im: H x W x C 像素数据数组用于 RGB 图像。 - nbin: 直方图包数。 (默认值: 10 ) - xmin: 最小像素值(默认值:0 ) - Xmax: 最大像素值 (默认值: 255) - 正常化: 是否对直方图进行常规化( 默认值: True)
-
-    返回: nbin 长度的 1D 矢量,在输入图像的色度上显示直方图。
+    基于色相提取颜色直方图。im 为 (H,W,C) 的 RGB 图像；nbin 为区间数，默认 10；xmin、xmax 默认 0、255；normalized 决定是否归一化。返回长度为 nbin 的一维特征向量。
     """
     ndim = im.ndim
     bins = np.linspace(xmin, xmax, nbin + 1)
@@ -204,7 +184,7 @@ def color_histogram_hsv(im, nbin=10, xmin=0, xmax=255, normalized=True):
 # ~~START DELETE~~
 # These are some other features that we implemented to play around, but aren't
 # distributing to students.
-# [中文] 这些是我们用来玩耍的其他特征, 但不向学生分发。 校对:Portnoy
+# [中文] 以下是课程开发时尝试过的其他特征实现，不属于发给学生的代码。
 def color_histogram(im, nbin=10, xmin=0, xmax=255, normalized=True):
     """Compute color histogram feature for an image
 
@@ -221,37 +201,33 @@ def color_histogram(im, nbin=10, xmin=0, xmax=255, normalized=True):
 
 
     中文对照：
-    计算图像的颜色直方图特性
-
-    参数: im: 一个灰度或 rgb 图像 nbin 的纽扣数组: 直方图箱数( 默认值: 10 ) xmin: 最小像素值( 默认数: 0 ) Xmax: 最大像素值 (deafult: 255 ) 普通化: 布尔标志使直方图正常化
-
-    返回: 性能: 彩色直方图特性
+    为灰度或 RGB 图像计算颜色直方图特征。im 是图像数组，nbin 是区间数，xmin、xmax 指定数值范围，normalized 决定是否归一化；返回特征 feat。
     """
     ndim = im.ndim
     bins = np.linspace(xmin, xmax, nbin + 1)
     # grayscale image
-    # [中文] 灰度图像
+    # [中文] 灰度图像。
     if ndim == 2:
         imhist, bin_edges = np.histogram(im, bins=bins, density=normalized)
         return imhist
     # rgb image
-    # [中文] rgb 图像
+    # [中文] RGB 彩色图像。
     elif ndim == 3:
         color_hist = np.array([])
         # loop through three color channels
-        # [中文] 通过三个颜色频道循环
+        # [中文] 依次处理三个颜色通道。
         for k in range(3):
             # compute normalized histogram
-            # [中文] 计算正态直方图
+            # [中文] 计算归一化后的直方图。
             imhist, bin_edges = np.histogram(im[:, :, k], bins=bins, density=normalized)
             imhist = imhist * np.diff(bin_edges)
             # concatenate histogram
-            # [中文] 共形直方图
+            # [中文] 拼接各个直方图。
             color_hist = np.concatenate((color_hist, imhist))
         # return histogram
         return color_hist
     # unknown image type
-    # [中文] 未知图像类型
+    # [中文] 无法识别的图像类型。
     return np.array([])
 
 
@@ -261,7 +237,7 @@ def color_histogram_spatial(img, levels=3, nbin=4):
 
 
     中文对照：
-    金字塔上的彩色直方图
+    基于图像金字塔的颜色直方图。
     """
     feats = []
 
@@ -281,7 +257,7 @@ def color_histogram_cross(img, nbin=5, normalized=True):
 
 
     中文对照：
-    RGB 颜色直方图, 我们的文件夹是 3 维的。
+    RGB 三维联合颜色直方图，每个区间同时对应三个颜色通道。
     """
     height, width, channels = img.shape
     new_size = (height * width, channels)
@@ -290,4 +266,4 @@ def color_histogram_cross(img, nbin=5, normalized=True):
 
 
 # ~~END DELETE~~
-# [中文] * 结束 * * * * 结束* * * * End Delete *
+# [中文] 原代码的删除区域结束标记。

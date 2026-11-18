@@ -39,9 +39,7 @@ def sgd(w, dw, config=None):
 
 
     中文对照：
-    执行普通随机梯度下降。
-
-    配置格式: - learning_rate: 标量 学习率。
+    普通随机梯度下降（SGD）。config 中的 learning_rate 是标量学习率。
     """
     if config is None:
         config = {}
@@ -64,9 +62,7 @@ def sgd_momentum(w, dw, config=None):
 
 
     中文对照：
-    以动量进行悬浮梯度下降。
-
-    配置格式: - learning_rate: 标量 学习速度。 - 动量: 0 和 1 之间有 scalar 表示动量值。 设置动量 = 0 降低到 sgd。 -速度: 与用于存储梯度梯度平均值的 w 和 dw 相同形状的NumPy 数组。
+    带动量的 SGD。config 中 learning_rate 为学习率，momentum 为 0 到 1 之间的动量系数，取 0 时退化为普通 SGD；velocity 与权重同形状，用于保存更新中的历史累积量。
     """
     if config is None:
         config = {}
@@ -79,12 +75,12 @@ def sgd_momentum(w, dw, config=None):
     # TODO: Implement the momentum update formula. Store the updated value in #
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
-    # [中文] TODO: 执行动量更新公式。 在 next_w 变量中存储更新值。 您也应该使用并更新速度 v。
+    # [中文] 待完成：实现带动量的参数更新，将更新后的权重存入 next_w，同时更新速度变量 v。
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    # [中文] 代码结束
+    # [中文] 自行实现的代码区域结束。
     config["velocity"] = v
 
     return next_w, config
@@ -104,9 +100,7 @@ def rmsprop(w, dw, config=None):
 
 
     中文对照：
-    使用 RMSProp 更新规则,该规则使用平方梯度移动平均值来设定适应性的每参数学习率。
-
-    配置格式: - learning_rate: 标量 学习速度。 - decay_rate: 0 和 1 之间的卡拉尔 给出正方形梯度缓存的衰减速度。
+    RMSProp：利用梯度平方的移动平均，为不同参数调整更新步长。config 中 learning_rate 为学习率，decay_rate 控制统计量衰减，epsilon 用于避免除零，cache 保存梯度平方的移动平均。
     """
     if config is None:
         config = {}
@@ -121,13 +115,12 @@ def rmsprop(w, dw, config=None):
     # in the next_w variable. Don't forget to update cache value stored in    #
     # config['cache'].                                                        #
     ###########################################################################
-    # [中文] TODO: 执行 RMSprop 更新公式, 在 next_w 变量中存储下一个 w 值。 不要忘记更新存储在 config['cache'] 中的缓存值
-    # 。
+    # [中文] 待完成：实现 RMSProp 更新，将新权重存入 next_w，并更新 config['cache'] 中保存的梯度平方统计量。
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    # [中文] 代码结束
+    # [中文] 自行实现的代码区域结束。
 
     return next_w, config
 
@@ -148,9 +141,7 @@ def adam(w, dw, config=None):
 
 
     中文对照：
-    使用 Adam 更新 规则, 其中包括 梯度 及其平方 的移动平均值 和 偏差 校正 术语。
-
-    配置格式: - learning_rate: 标量 学习率。 - 贝塔1: 移动梯度一阶矩平均值的衰减率。- 贝塔2: 移动梯度二阶矩平均值的衰变率。 -- epsilon: 平滑时使用的较小的标量,以避免除以零。 - m: 移动梯度平均值。 - v: 平方梯度的移动平均数。 - t: 迭代号。
+    Adam：结合梯度及梯度平方的指数移动平均，并进行偏差修正。config 中 learning_rate 为学习率；beta1、beta2 分别控制一阶矩与二阶矩估计的衰减；epsilon 保证数值稳定；m、v 保存两类移动平均，t 是迭代次数。
     """
     if config is None:
         config = {}
@@ -171,12 +162,19 @@ def adam(w, dw, config=None):
     # NOTE: In order to match the reference output, please modify t _before_  #
     # using it in any calculations.                                           #
     ###########################################################################
-    # [中文] TODO: 执行 Adam 更新公式, 在 next_w 变量中存储 W 的下一个值。 不要忘记更新在配置中存储的 m、 v 和 t 变量。 注意:
-    # 为了匹配引用输出, 请在任何计算中使用 t 之前修改。
+    # [中文] 待完成：实现 Adam 更新，将新权重存入 next_w，并更新 config 中的 m、v、t。为匹配参考输出，必须先更新 t，再在后续计算中使用它。
+    config["t"] += 1
+    
+    config["m"] = config["beta1"] * config["m"] + (1-config["beta1"]) * dw
+    m_hat = config["m"] / (1 - config["beta1"] ** config["t"])
 
+    config["v"] = config["beta2"] * config["v"] + (1-config["beta2"]) * dw ** 2
+    v_hat = config["v"] / (1 - config["beta2"] ** config["t"])
+
+    next_w = w - config["learning_rate"] * m_hat / (np.sqrt(v_hat) + config["epsilon"])
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    # [中文] 代码结束
+    # [中文] 自行实现的代码区域结束。
 
     return next_w, config

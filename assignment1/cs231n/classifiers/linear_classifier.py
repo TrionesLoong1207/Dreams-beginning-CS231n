@@ -41,24 +41,20 @@ class LinearClassifier(object):
 
 
         中文对照：
-        使用随机梯度下降来训练此线性分类器。
-
-        输入: - X: 形状的NumPy 数组(N, D)包含训练数据; 每个维度都有 N 训练样本。 - y: 形状的NumPy 数组(N,)含有训练标签;y[i]=c 意味着X[i]有标签0c < C 类。learning_rate:  (float)优化学习率。 - 区域:(float)- 正则化的力量。num_iters:  (integer)优化时要采取的步骤数量batch_size:  (integer)每一步使用的训练实例数量。 - 动词:(boolean)如果正确, 在优化时打印进度。
-
-        产出:列出每次训练迭代的损失函数值。
+        使用 SGD 训练线性分类器。X 为 (N,D)，y 为 (N,)，标签满足 0 <= y[i] < C。learning_rate 是学习率，reg 是正则化强度，num_iters 是更新次数，batch_size 是每次抽取的样本数，verbose 控制进度输出。返回每次迭代的损失列表。
         """
         num_train, dim = X.shape
         num_classes = (
             np.max(y) + 1
         )  # assume y takes values 0...K-1 where K is number of classes
-        # [中文] 假设 y 值为 0 ...K - 1, K 是类数
+        # [中文] 假设标签 y 取值为 0～K−1，其中 K 为类别数。
         if self.W is None:
             # lazily initialize W
-            # [中文] 稍稍初始化 W
+            # [中文] 首次需要时再初始化 W。
             self.W = 0.001 * np.random.randn(dim, num_classes)
 
         # Run stochastic gradient descent to optimize W
-        # [中文] 运行随机梯度下降以优化 W
+        # [中文] 用随机梯度下降优化 W。
         loss_history = []
         for it in range(num_iters):
             X_batch = None
@@ -75,13 +71,14 @@ class LinearClassifier(object):
             # Hint: Use np.random.choice to generate indices. Sampling with         #
             # replacement is faster than sampling without replacement.              #
             #########################################################################
-            # [中文] 待办事宜: 样本batch_size用于这一轮梯度下降的训练数据及其相应标签中的元素。X_batch和相应的标签y_batch;
-            # 取样后X_batch应该有形状(batch_size, dim)和y_batch应该有形状(batch_size,)提示:
-            # 使用np.random.choice来生成指数。用替换进行取样比不替换取样要快。
-
+            # [中文] 待完成：从训练集中抽取 batch_size 个样本及其对应标签，供本轮梯度下降使用。分别存入 X_batch 和 y_batch，形状应为 (batch_size,dim)
+            # 和 (batch_size,)。原题提示：用 np.random.choice 生成索引；有放回抽样通常比无放回抽样更快。
+            batch_indices = np.random.choice(num_train, batch_size, replace=True)
+            X_batch = X[batch_indices]
+            y_batch = y[batch_indices]
 
             # evaluate loss and gradient
-            # [中文] 评估损失和梯度
+            # [中文] 计算损失和梯度。
             loss, grad = self.loss(X_batch, y_batch, reg)
             loss_history.append(loss)
 
@@ -90,8 +87,8 @@ class LinearClassifier(object):
             # TODO:                                                                 #
             # Update the weights using the gradient and the learning rate.          #
             #########################################################################
-            # [中文] 执行参数更新 TODO: 使用梯度和学习率更新加权数。
-
+            # [中文] 待完成：根据当前梯度和学习率更新权重。
+            self.W -= grad * learning_rate
 
             if verbose and it % 100 == 0:
                 print("iteration %d / %d: loss %f" % (it, num_iters, loss))
@@ -114,19 +111,16 @@ class LinearClassifier(object):
 
 
         中文对照：
-        使用该线性分类器经过训练的权重来预测数据点的标签。
-
-        输入: - X:包含训练数据的形状 (N, D) 的NumPy 数组;每个维度D都有N训练样本。
-
-        返回时间: -y_pred: X 中数据的预测标签。y_pred是一个1- 长度为N的维数组,每个元素为整数,给出了预测的类别。
+        用已训练的权重预测输入 X 的类别。X 为 (N,D)，返回长度为 N 的预测标签数组。
         """
         y_pred = np.zeros(X.shape[0])
         ###########################################################################
         # TODO:                                                                   #
         # Implement this method. Store the predicted labels in y_pred.            #
         ###########################################################################
-        # [中文] TODO: 应用此方法。 将预测的标签保存在y_pred 中。
-
+        # [中文] 待完成：实现本方法，将预测标签存入 y_pred。
+        scores = X.dot(self.W)
+        y_pred = np.argmax(scores, axis=1)
         return y_pred
 
     def loss(self, X_batch, y_batch, reg):
@@ -146,11 +140,7 @@ class LinearClassifier(object):
 
 
         中文对照：
-        计算损失函数及其衍生物。 子类将超过此值。
-
-        投入: -X_batch:一个形形的NumPy 数组(N, D)含有一小批N数据点;每个点都有维度D。 -y_batch:一个形形的NumPy 数组(N,)包含小批的标签。 - ưμ㼯A(float)正则化的力量。
-
-        返回: 含有: - 以单浮标损失 - 相对于self.W 的梯度; 与 W 形状相同的数组
+        计算小批量数据的损失和梯度，由具体分类器子类实现。X_batch 为 (N,D)，y_batch 为对应类别标签，reg 为正则化强度；返回标量损失及权重梯度。
         """
         pass
 
@@ -169,7 +159,7 @@ class LinearClassifier(object):
       """Load model parameters.
 
       中文对照：
-      装入模型参数。
+      加载模型参数。
       """
       fpath = os.path.join(os.path.dirname(__file__), "../saved/", fname)
       if not os.path.exists(fpath):
@@ -186,7 +176,7 @@ class LinearSVM(LinearClassifier):
     """ A subclass that uses the Multiclass SVM loss function
 
     中文对照：
-    使用多级 SVM 损失函数的子类
+    使用多类别 SVM 损失的分类器子类。
     """
 
     def loss(self, X_batch, y_batch, reg):
@@ -197,7 +187,7 @@ class Softmax(LinearClassifier):
     """ A subclass that uses the Softmax + Cross-entropy loss function
 
     中文对照：
-    使用 Softmax + Cross-entropy 损失函数的子类
+    使用 Softmax 与交叉熵损失的分类器子类。
     """
 
     def loss(self, X_batch, y_batch, reg):

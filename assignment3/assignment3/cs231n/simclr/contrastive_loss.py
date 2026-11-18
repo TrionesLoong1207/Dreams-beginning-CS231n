@@ -14,11 +14,7 @@ def sim(z_i, z_j):
 
 
     中文对照：
-    两种向量之间的正常点产品。
-
-    输入数: - z_i: 1xD 发热。 - z_j: 1 xD 发光。
-
-    返回: - 一个标量值,即z_i 和 z_j 之间的正统点产值。
+    计算两个 1×D 特征向量 z_i、z_j 的归一化点积，即余弦相似度，返回标量。
     """
     norm_dot_product = None
     ##############################################################################
@@ -26,13 +22,17 @@ def sim(z_i, z_j):
     #                                                                            #
     # HINT: torch.linalg.norm might be helpful.                                  #
     ##############################################################################
-    # [中文] TODO: 启动您的代码。 HINT: torch.linalg.norm 可能会有帮助。
+    # [中文] 待完成。原题提示：可参考 torch.linalg.norm。
+    i_norm = torch.linalg.norm(z_i)
+    j_norm = torch.linalg.norm(z_j)
+    z_i = z_i.reshape(-1)
+    z_j = z_j.reshape(-1)
     
-    
+    norm_dot_product = z_i.dot(z_j) / (i_norm * j_norm)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
-    # [中文] 代码结束
+    # [中文] 自行实现的代码区域结束。
     
     return norm_dot_product
 
@@ -52,22 +52,18 @@ def simclr_loss_naive(out_left, out_right, tau):
 
 
     中文对照：
-    计算批量 (naive loop version) 的对比性损失L。
-
-    输入: - out_left: NxD shor; 投影头 g () 的输出, SimCLR 模型中的左分支。 out_right: nxD Shor; 预测头 G () 输出, SIMCL 模型中的右分支。 每个行都是批量中放大样本的 Z- Vector。 在 out_left 和 out_right 中的同一行形成正对。 换句话说, ( out_left, out_right [k]) 对所有 k = 0 ... N- 1 形成正对。 - Tau: 标值, 温度参数决定指数增长的速度。
-
-    返回: - 星标值;批量中所有正对的总损失。定义见笔记本。
+    通过循环计算一个批量的 SimCLR 对比损失。out_left、out_right 均为 (N,D)，表示两个增强分支经投影头后的特征；temperature 为温度参数。返回标量批量损失。
     """
     N = out_left.shape[0]  # total number of training examples
-    # [中文] 训练实例总数
+    # [中文] 训练样本总数。
     
      # Concatenate out_left and out_right into a 2*N x D tensor.
-     # [中文] 将 out_left 和 out_right 相连接为 2 * N x D 发光器。
+     # [中文] 将 out_left 与 out_right 拼成形状为 (2N,D) 的张量。
     out = torch.cat([out_left, out_right], dim=0)  # [2*N, D]
     
     total_loss = 0
     for k in range(N):  # loop through each positive pair (k, k+N)
-    # [中文] 环绕每对正对( k, k+N)
+    # [中文] 遍历各个正样本对 (k,k+N)。
         z_k, z_k_N = out[k], out[k+N]
         
         ##############################################################################
@@ -75,15 +71,30 @@ def simclr_loss_naive(out_left, out_right, tau):
         #                                                                            #
         # Hint: Compute l(k, k+N) and l(k+N, k).                                     #
         ##############################################################################
-        # [中文] TODO: 代码启动。 提示: 计算 l( k, k+N) 和 l( k+N, k)。
-        
+        # [中文] 待完成。原题提示：计算 l(k,k+N) 和 l(k+N,k)。
+        e = torch.exp(sim(z_k, z_k_N)/tau)
+        e_sum = 0
+        for m in range(2*N):
+            if m != k:
+                e_sum += torch.exp(sim(z_k, out[m])/tau)
+        L_k = -torch.log(e / e_sum)
+
+        e_sum = 0
+        e = torch.exp(sim(z_k_N, z_k)/tau)
+        for m in range(2*N):
+            if m != k + N:
+                e_sum += torch.exp(sim(z_k_N, out[m])/tau)
+        L_k_N = -torch.log(e / e_sum)
+
+        loss = L_k + L_k_N
+        total_loss += loss
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
     
     # In the end, we need to divide the total loss by 2N, the number of samples in the batch.
-    # [中文] 最后,我们需要将损失总数除以2N,即批量样品的数量。
+    # [中文] 最后将总损失除以批内增强样本总数 2N。
     total_loss = total_loss / (2*N)
     return total_loss
 
@@ -102,11 +113,7 @@ def sim_positive_pairs(out_left, out_right):
 
 
     中文对照：
-    正样本对之间的归一化点积。
-
-    输入: - out_left: NxD shor; 投影头 g () 的输出, SimCLR 模型中的左分支。 - out_right: N xD shorn; 投像头 g() 的产出, SimClR 模型中右分支。 每行都是批量中放大样本的 Z 矢量。 同一行 ( out_left ) 和 out_right 形成正对数。
-
-    返回: - Nx1 发压器;每行 k 是 out_left [k] 和 out_right [k]之间的正统点产物。
+    计算两个增强分支中对应正样本对的归一化点积。out_left、out_right 为 (N,D)，每对由同一原图的两个增强视图构成；输出对应的相似度。
     """
     pos_pairs = None
     
@@ -115,13 +122,16 @@ def sim_positive_pairs(out_left, out_right):
     #                                                                            #
     # HINT: torch.linalg.norm might be helpful.                                  #
     ##############################################################################
-    # [中文] TODO: 启动您的代码。 HINT: torch.linalg.norm 可能会有帮助。
-    
-    
+    # [中文] 待完成。原题提示：可参考 torch.linalg.norm。
+    pos_pairs = torch.sum(out_left * out_right, dim=1, keepdim=True)
+    l_norm = torch.linalg.norm(out_left, dim=1, keepdim=True)
+    r_norm = torch.linalg.norm(out_right, dim=1, keepdim=True)
+
+    pos_pairs /= l_norm * r_norm
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
-    # [中文] 代码结束
+    # [中文] 自行实现的代码区域结束。
     return pos_pairs
 
 
@@ -137,25 +147,21 @@ def compute_sim_matrix(out):
 
 
     中文对照：
-    在一个批量中计算所有配对增强型示例之间的 2N x 2N 归一化点积矩阵。
-
-    输入: - 输出: 2N x D 发压器; 每行为单个增强示例的 z 矢量 (output of projection head)。 批量中共有 2N 增强示例。
-
-    返回: - sim_matrix: 2N x 2N 温度;矩阵中每个元素 i, j 是 out[i] 和 out[j] 之间的正统点产物。
+    计算批内 2N 个增强样本两两之间的归一化点积矩阵。输入 out 为 (2N,D)，每行是一个投影特征；输出为 (2N,2N)。
     """
     sim_matrix = None
     
     ##############################################################################
     # TODO: Start of your code.                                                  #
     ##############################################################################
-    # [中文] 开始你的代码。
-    
-
-    
+    # [中文] 待完成：从这里开始编写代码。
+    norm = torch.linalg.norm(out, dim=1, keepdim=True)
+    out_normalized = out / norm
+    sim_matrix = out_normalized @ out_normalized.T
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
-    # [中文] 代码结束
+    # [中文] 自行实现的代码区域结束。
     return sim_matrix
 
 
@@ -166,63 +172,61 @@ def simclr_loss_vectorized(out_left, out_right, tau, device='cuda'):
 
 
     中文对照：
-    计算批量 (vectorized version) 的对比性损失 L。 不允许循环。
-
-    输入和输出与 simclr_loss_naive 相同。
+    用向量化方式计算 SimCLR 批量对比损失，不允许显式循环。输入输出与 simclr_loss_naive 相同。
     """
     N = out_left.shape[0]
     
     # Concatenate out_left and out_right into a 2*N x D tensor.
-    # [中文] 将 out_left 和 out_right 相连接为 2 * N x D 发光器。
+    # [中文] 将 out_left 与 out_right 拼成形状为 (2N,D) 的张量。
     out = torch.cat([out_left, out_right], dim=0)  # [2*N, D]
     
     # Compute similarity matrix between all pairs of augmented examples in the batch.
-    # [中文] 计算批量中所有增加示例的相似性矩阵。
+    # [中文] 计算批内所有增强样本两两之间的相似度矩阵。
     sim_matrix = compute_sim_matrix(out)  # [2*N, 2*N]
     
     ##############################################################################
     # TODO: Start of your code. Follow the hints.                                #
     ##############################################################################
-    # [中文] 启动您的代码。 跟随提示。
+    # [中文] 待完成：按原题提示编写代码。
     
     # Step 1: Use sim_matrix to compute the denominator value for all augmented samples.
     # Hint: Compute e^{sim / tau} and store into exponential, which should have shape 2N x 2N.
-    # [中文] 步骤1:使用sim_matrix来计算所有增强样本的分母值。提示:计算 esim / tau} 并存储成指数值, 该指数值应具有 2N x 2N 形状。
+    # [中文] 步骤 1：根据 sim_matrix 计算所有增强样本的分母。原题提示：先计算 exp(sim/tau)，保存为形状 2N×2N 的 exponential。
     exponential = None
-    
+    exponential = torch.exp(sim_matrix/tau)
     # This binary mask zeros out terms where k=i.
-    # [中文] 此二进制掩码在 k=i 处为零。
+    # [中文] 此二值掩码将 k=i 的项置零。
     mask = (torch.ones_like(exponential, device=device) - torch.eye(2 * N, device=device)).to(device).bool()
     
     # We apply the binary mask.
-    # [中文] 我们用二进制面具
+    # [中文] 应用二值掩码。
     exponential = exponential.masked_select(mask).view(2 * N, -1)  # [2*N, 2*N-1]
     
     # Hint: Compute the denominator values for all augmented samples. This should be a 2N x 1 vector.
-    # [中文] 提示: 计算所有增强样本的分母值。 这应该是 2N x 1 矢量。
+    # [中文] 原题提示：对所有增强样本计算分母，结果应为形状 2N×1 的向量。
     denom = None
-
+    denom = torch.sum(exponential, dim=1, keepdim=True)
     # Step 2: Compute similarity between positive pairs.
     # You can do this in two ways: 
     # Option 1: Extract the corresponding indices from sim_matrix. 
     # Option 2: Use sim_positive_pairs().
-    # [中文] 步骤 2: 计算正对之间的相似性。 您可以以两种方式做到这一点: 选项 1: 从 sim_matrix 中提取相应的索引。 选项 2: 使用
-    # sim_positive_pairs ()。
-    
+    # [中文] 步骤 2：计算正样本对的相似度。可以从 sim_matrix 提取对应元素，也可以调用 sim_positive_pairs()。
+    pos_pairs = sim_positive_pairs(out_left, out_right)
     
     # Step 3: Compute the numerator value for all augmented samples.
-    # [中文] 步骤3:计算所有增强样品的分子值。
+    # [中文] 步骤 3：计算所有增强样本的分子。
     numerator = None
-    
+    numerator = torch.exp(pos_pairs/tau)
+    numerator = torch.cat([numerator, numerator], dim=0)
     
     # Step 4: Now that you have the numerator and denominator for all augmented samples, compute the total loss.
-    # [中文] 步骤4:现在您拥有所有增强样品的分子和分母,计算总损失。
+    # [中文] 步骤 4：已有所有增强样本的分子与分母后，计算总损失。
     loss = None
-    
+    loss = -torch.log(numerator/denom).mean()
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
-    # [中文] 代码结束
+    # [中文] 自行实现的代码区域结束。
     
     return loss
 

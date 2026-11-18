@@ -14,39 +14,39 @@ def eval_numerical_gradient(f, x, verbose=True, h=0.00001):
 
 
     中文对照：
-    一个天真地执行 f at x - f 的数值梯度应该是一个函数, 需要一个参数 - x 是点(numpy array)以评价梯度
+    计算标量函数 f 在数组 x 各个分量上的数值梯度。f 只接收一个数组参数，x 是求梯度的位置。
     """
 
     fx = f(x)  # evaluate function value at original point
-    # [中文] 在原始点评价函数值
+    # [中文] 计算原始位置的函数值。
     grad = np.zeros_like(x)
     # iterate over all indexes in x
-    # [中文] x 中所有索引的循环
+    # [中文] 依次遍历 x 的各个索引。
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
 
         # evaluate function at x+h
-        # [中文] 在 x+h 处评价函数
+        # [中文] 计算 x+h 处的函数值。
         ix = it.multi_index
         oldval = x[ix]
         x[ix] = oldval + h  # increment by h
-        # [中文] 递增数x h
+        # [中文] 增加步长 h。
         fxph = f(x)  # evalute f(x + h)
-        # [中文] evalute f(x + h)
+        # [中文] 计算 f(x+h)。
         x[ix] = oldval - h
         fxmh = f(x)  # evaluate f(x - h)
-        # [中文] 评估 f(x- h)
+        # [中文] 计算 f(x−h)。
         x[ix] = oldval  # restore
-        # [中文] 恢复
+        # [中文] 恢复先前保存的值。
 
         # compute the partial derivative with centered formula
-        # [中文] 用中心公式计算部分衍生物
+        # [中文] 用中心差分公式计算偏导数。
         grad[ix] = (fxph - fxmh) / (2 * h)  # the slope
-        # [中文] 斜坡
+        # [中文] 斜率。
         if verbose:
             print(ix, grad[ix])
         it.iternext()  # step to next dimension
-        # [中文] 步进到下一个维度
+        # [中文] 继续检查下一个维度。
 
     return grad
 
@@ -58,7 +58,7 @@ def eval_numerical_gradient_array(f, x, df, h=1e-5):
 
 
     中文对照：
-    评估一个函数的数值梯度,该函数将接受一个网状数组,并返回一个网状数组。
+    对接收 NumPy 数组并返回 NumPy 数组的函数计算数值梯度。
     """
     grad = np.zeros_like(x)
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
@@ -97,15 +97,7 @@ def eval_numerical_gradient_blobs(f, inputs, output, h=1e-5):
 
 
     中文对照：
-    计算在输入和输出浮标上运行的函数的数字梯度。
-
-    我们假设 f 接受数个输入块作为参数, 然后再接受一个输出的块。 例如, f 可以称为:
-
-    f (x, w, out)
-
-    输入 blobs 的 x 和 w, F 的结果将被写入。
-
-    输入: - f: 函数 - 输入: 输入块的图普 - 输出: 输出块 - h: 步数大小
+    计算使用输入、输出 blob 的函数的数值梯度。函数 f 接收若干输入 blob 和一个输出 blob，检查时对输入逐项扰动，并结合输出端梯度计算输入梯度。具体 blob 接口约定见英文原说明。
     """
     numeric_diffs = []
     for input_blob in inputs:
@@ -143,7 +135,7 @@ def grad_check_sparse(f, x, analytic_grad, num_checks=10, h=1e-5):
 
 
     中文对照：
-    试样一些随机元素, 仅返回此维的数值。
+    随机抽取几个参数维度，只返回这些维度的数值梯度。
     """
 
     for i in range(num_checks):
@@ -151,15 +143,15 @@ def grad_check_sparse(f, x, analytic_grad, num_checks=10, h=1e-5):
 
         oldval = x[ix]
         x[ix] = oldval + h  # increment by h
-        # [中文] 递增数x h
+        # [中文] 增加步长 h。
         fxph = f(x)  # evaluate f(x + h)
-        # [中文] 评估 f(x + h)
+        # [中文] 计算 f(x+h)。
         x[ix] = oldval - h  # increment by h
-        # [中文] 递增数x h
+        # [中文] 增加步长 h。
         fxmh = f(x)  # evaluate f(x - h)
-        # [中文] 评估 f(x- h)
+        # [中文] 计算 f(x−h)。
         x[ix] = oldval  # reset
-        # [中文] 重设
+        # [中文] 重置状态。
 
         grad_numerical = (fxph - fxmh) / (2 * h)
         grad_analytic = analytic_grad[ix]

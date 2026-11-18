@@ -15,7 +15,7 @@ class PositionalEncoding(nn.Module):
 
 
     中文对照：
-    编码序列中标记位置的信息。 在此情况下, 该层没有可学习的参数, 因为它是正弦和正弦的简单函数。
+    为序列中的 token 编码位置信息。这里使用固定的正弦、余弦函数，因此本层没有可学习参数。
     """
     def __init__(self, embed_dim, dropout=0.1, max_len=5000):
         """
@@ -28,16 +28,14 @@ class PositionalEncoding(nn.Module):
 
 
         中文对照：
-        构造位置编码层。
-
-        输入: - embed_dim: 嵌入维的大小 - Dropout（随机失活）: Dropout（随机失活） 值 - max_len: 新进序列的最大可能长度
+        构造位置编码层。embed_dim 是嵌入维度，dropout 是随机失活概率，max_len 是允许的最大输入序列长度。
         """
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
         assert embed_dim % 2 == 0
         # Create an array with a "batch dimension" of 1 (which will broadcast
         # across all examples in the batch).
-        # [中文] 创建一个“ 批量尺寸” 1 (which will broadcast across all examples in the batch) 的数组。
+        # [中文] 为位置编码增加长度为 1 的批维度，使其可通过广播用于批内所有样本。
         pe = torch.zeros(1, max_len, embed_dim)
         ############################################################################
         # TODO: Construct the positional encoding array as described in            #
@@ -47,17 +45,23 @@ class PositionalEncoding(nn.Module):
         # this is what the autograder is expecting. For reference, our solution is #
         # less than 5 lines of code.                                               #
         ############################################################################
-        # [中文] TODO: 构造所描述的位置编码数组Transformer_Captioning.ipynb。目标是每行交替使用正弦和余弦,并配有0,  0,  2,
-        # 2,  4,  4,等等,直到embed_dim。这个精确的规格当然有点武断,但这是自动升级器所期望的。参考一下,我们的解决方案低于5代码行。
+        # [中文] 待完成：按 Transformer_Captioning.ipynb 定义构造位置编码。每行交替使用正弦与余弦，指数中的序号按 0、0、2、2、4、4 等排列，直到覆盖
+        # embed_dim。请严格匹配题目约定，自动测试依赖这一具体形式；参考实现不到五行。
+        position = torch.arange(max_len).unsqueeze(1)
+        dims = torch.arange(0, embed_dim, 2)
+        
+        angles = position * (10000 ** (-dims / embed_dim))
 
+        pe[:, :, 0::2] = torch.sin(angles)
+        pe[:, :, 1::2] = torch.cos(angles)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
 
         # Make sure the positional encodings will be saved with the model
         # parameters (mostly for completeness).
-        # [中文] 确保位置编码以模型参数(mostly for completeness) 保存。
+        # [中文] 将位置编码注册到模型，使其随模型参数一起保存。
         self.register_buffer('pe', pe)
 
     def forward(self, x):
@@ -73,25 +77,25 @@ class PositionalEncoding(nn.Module):
 
 
         中文对照：
-        元素向输入序列添加位置嵌入。
-
-        输入: - x: 输入到位置编码器模型的序列, 形状 (N, S, D), N 是批量大小, S 是序列长度, D 正在嵌入 dimm 返回: - 输出: 输入序列+位置编码, 形状为 (N, S, D)
+        将位置编码逐元素加到输入序列上。x 和输出的形状均为 (N,S,D)，其中 N 为批大小，S 为序列长度，D 为嵌入维度。
         """
         N, S, D = x.shape
         # Create a placeholder, to be overwritten by your code below.
-        # [中文] 创建一个占位符, 由下面的代码覆盖。
+        # [中文] 创建占位值，后续由你实现的代码覆盖。
         output = torch.empty((N, S, D))
         ############################################################################
         # TODO: Index into your array of positional encodings, and add the         #
         # appropriate ones to the input sequence. Don't forget to apply dropout    #
         # afterward. This should only take a few lines of code.                    #
         ############################################################################
-        # [中文] TODO: 将索引输入位置编码, 并将相应的编码添加到输入序列中。 以后不要忘了应用 Dropout（随机失活）。 这只需要几行代码。
-
+        # [中文] 待完成：取出与输入序列位置对应的位置编码，加到输入上，然后应用 Dropout。参考实现只需几行。
+        pe = self.pe
+        x_pe = pe[:, :S, :] + x
+        output = self.dropout(x_pe)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
         return output
 
 
@@ -113,13 +117,7 @@ class MultiHeadAttention(nn.Module):
 
 
     中文对照：
-    执行“注意是所有你需要的” 所引入的简化蒙蔽注意的模型层 (https://arxiv.org/abs/1706.03762).)
-
-    用法: attn = 多头注意 ( embed_dim, num_heads = 2 )
-
-    # 自控数据 = torch.randn(batch_size, sequence_length, embed_dim) self_attn_output = attn(克里=数据,键=数据,值=数据)
-
-    # 注意,使用两个输入 other_data = torch.randn(batch_size, sequence_length, embed_dim) attn_output = attn(克里=数据,键= other_data,值= other_data )
+    实现 Attention Is All You Need 中掩码注意力的简化版本。query、key、value 来自同一序列时是自注意力；query 来自一条序列而 key、value 来自另一条序列时，可用于交叉注意力。调用方式和论文链接见英文原说明。
     """
 
     def __init__(self, embed_dim, num_heads, dropout=0.1):
@@ -133,9 +131,7 @@ class MultiHeadAttention(nn.Module):
 
 
         中文对照：
-        构造一个新的多头注意层。
-
-        输入: - embed_dim: 符号嵌入的尺寸 - num_heads: 注意头数 - Dropout（随机失活）: Dropout（随机失活） 概率
+        构造多头注意力层。embed_dim 是 token 的嵌入维度，num_heads 是注意力头数，dropout 是随机失活概率。
         """
         super().__init__()
         assert embed_dim % num_heads == 0
@@ -145,8 +141,7 @@ class MultiHeadAttention(nn.Module):
         # outputs relative to the autograder). Note that the layers use a bias
         # term, but this isn't strictly necessary (and varies by
         # implementation).
-        # [中文] 我们将为您初始化这些层, 因为交换命令会影响随机数字生成 (and therefore your exact outputs relative to the
-        # autograder)。 注意这些层使用偏差术语, 但这不是绝对必要的 (and varies by implementation)。
+        # [中文] 层的初始化已提供。调整初始化顺序会影响随机数消耗顺序，进而影响与自动测试参考值的逐项比较。本实现使用偏置，其他实现也可能不使用。
         self.key = nn.Linear(embed_dim, embed_dim)
         self.query = nn.Linear(embed_dim, embed_dim)
         self.value = nn.Linear(embed_dim, embed_dim)
@@ -181,18 +176,12 @@ class MultiHeadAttention(nn.Module):
 
 
         中文对照：
-        计算所提供数据的掩码关注输出, 平行计算所有关注头。
-
-        在下面的形状定义中,N是批量大小,S是源序列长度,T是目标序列长度,E是嵌入尺寸。
-
-        输入: - 查询: 输入数据用作查询, 形状(N, S, E) - 键: 输入的数据用作键, 形状 (N, T, E) - 值: 形状 (N, T, E) - attn_mask 的输入数据用作数值: 元件 (S, T) 的数组, 其中 mask[i,j] = 0 表示源代码中的符号i 不应影响目标中的符号 j。
-
-        返回: - 输出: 形状 (N, S, E) 的 Tensor 表示根据使用键和查询计算到的注意权重,将数据按数值加权组合。
+        并行计算各注意力头并得到带掩码的注意力输出。query 为 (N,S,E)，key、value 为 (N,T,E)，attn_mask 为 (S,T)，掩码中的 0 标记禁止参与注意力的位置；输出为 (N,S,E)，是按 query/key 计算的权重对 value 加权汇总的结果。N 为批大小，S、T 分别是查询与键值序列长度，E 为嵌入维度。掩码行列含义以当前输入的查询、键值顺序为准。
         """
         N, S, E = query.shape
         N, T, E = value.shape
         # Create a placeholder, to be overwritten by your code below.
-        # [中文] 创建一个占位符, 由下面的代码覆盖。
+        # [中文] 创建占位值，后续由你实现的代码覆盖。
         output = torch.empty((N, S, E))
         ############################################################################
         # TODO: Implement multiheaded attention using the equations given in       #
@@ -208,16 +197,33 @@ class MultiHeadAttention(nn.Module):
         #     prevent a value from influencing output. Specifically, the PyTorch   #
         #     function masked_fill may come in handy.                              #
         ############################################################################
-        # [中文] TODO: 使用给定方程式执行多头关注Transformer_Captioning.ipynb。一些提示:1你会想分裂 你的形状从(N, T,
-        # E)插入(N、T、H、E/H),其中H为头数。2函数torch.matmul允许您进行分批的矩阵乘法。 例如, 您可以通过 (N、 H、 E/ H、 T)
-        # 生成形状(N, H, T,
-        # T)。更多例子见https://pytorch.org/docs/stable/generated/torch.matmul.html
-        # 3申请attn_mask,考虑如何修改评分,以防止某个值影响输出。具体来说,PyTorrch 函数masked_fill也许会派上用场
+        # [中文] 待完成：按 notebook 公式实现多头注意力。原题提示：将 (N,T,E) 拆成 (N,T,H,E/H)，其中 H 为头数；torch.matmul
+        # 可完成批量矩阵乘法，例如 (N,H,T,E/H) 与 (N,H,E/H,T) 相乘得到 (N,H,T,T)。应用 attn_mask 时要防止被屏蔽位置影响输出，可参考
+        # masked_fill。更多用法见英文文档链接。
+        Q = self.query(query)
+        K = self.key(key)
+        V = self.value(value)
+        H = self.n_head
 
+        Q = Q.reshape(N, S, H, self.head_dim).transpose(1, 2)
+        K = K.reshape(N, T, H, self.head_dim).transpose(1, 2)
+        V = V.reshape(N, T, H, self.head_dim).transpose(1, 2)
+
+        scores = torch.matmul(Q, K.transpose(-1, -2)) / (self.head_dim ** 0.5)
+
+        if attn_mask is not None:
+            scores = scores.masked_fill(attn_mask == 0, float("-inf"))
+
+        attention_weights = torch.softmax(scores, dim=-1)
+        attention_weights = self.attn_drop(attention_weights)
+        out = torch.matmul(attention_weights, V)
+
+        out = out.transpose(1, 2).reshape(N, S, E)
+        output = self.proj(out)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
         return output
 
 
@@ -233,9 +239,7 @@ class FeedForwardNetwork(nn.Module):
 
 
         中文对照：
-        简单的双层种子前向网络,有 Dropout（随机失活） 和 ReLU 激活。
-
-        输入: - embed_dim: 输入和输出嵌入的尺寸 - ffn_dim: feedforward 网络中的隐藏尺寸 - Dropout（随机失活）: Dropout（随机失活） 概率
+        带 ReLU 和 Dropout 的双层前馈网络。embed_dim 是输入输出嵌入维度，ffn_dim 是隐藏层维度，dropout 是随机失活概率。
         """
         super().__init__()
         self.fc1 = nn.Linear(embed_dim, ffn_dim)
@@ -255,11 +259,7 @@ class FeedForwardNetwork(nn.Module):
 
 
         中文对照：
-         feedforward 网络 前向传播。
-
-        输入: - x: 形状 (N, T, D) 的输入强度
-
-        返回: - 退出: 输出数组与输入的形状相同
+        前馈网络的前向传播。输入 x 为 (N,T,D)，输出 out 与输入形状相同。
         """
         out = torch.empty_like(x)
 
@@ -277,7 +277,7 @@ class TransformerDecoderLayer(nn.Module):
 
 
     中文对照：
-    一个转换器解码器的单层, 用于转换器解碼器。
+    Transformer 解码器中的一个解码器层。
     """
     def __init__(self, input_dim, num_heads, dim_feedforward=2048, dropout=0.1):
         """
@@ -291,9 +291,7 @@ class TransformerDecoderLayer(nn.Module):
 
 
         中文对照：
-        构造一个变形DecoderLayer 实例。
-
-        输入: - input_dim: 输入中预期的特性数。 - num_heads:注意头数 - dim_feedforward: feedforward 网络模型的尺寸。 -Dropout（随机失活）: Dropout（随机失活） 值。
+        构造 TransformerDecoderLayer。input_dim 为输入特征维度，num_heads 为注意力头数，dim_feedforward 为前馈网络隐藏维度，dropout 为随机失活概率。
         """
         super().__init__()
         self.self_attn = MultiHeadAttention(input_dim, num_heads, dropout)
@@ -323,15 +321,11 @@ class TransformerDecoderLayer(nn.Module):
 
 
         中文对照：
-        通过解码层传递输入(and mask)。
-
-        输入: - tgt: 解码器层的序列, 形状 (N, T, D) - 内存: 编码器末层的序列 形状 (N, S, D) - tgt_mask: 目标序列中隐藏的部件, 形状(T, T)
-
-        返回: - 退出: 形状 (N, T, W) 的变形器特性
+        将输入与掩码送入解码器层。tgt 为 (N,T,D) 的目标序列，memory 为编码器最后一层的输出 (N,S,D)，tgt_mask 为 (T,T) 的目标序列掩码。返回 Transformer 特征；英文原注释将输出形状记为 (N,T,W)。
         """
 
         # Self-attention block (reference implementation)
-        # [中文] 自控区块 (reference implementation)
+        # [中文] 自注意力子层，代码已作为参考实现提供。
         shortcut = tgt
         tgt = self.self_attn(query=tgt, key=tgt, value=tgt, attn_mask=tgt_mask)
         tgt = self.dropout_self(tgt)
@@ -344,12 +338,22 @@ class TransformerDecoderLayer(nn.Module):
         # memory, and (2) the feedforward block. Each block should follow the      #
         # same structure as self-attention implemented just above.                 #
         ############################################################################
-        # [中文] TODO: 通过执行其余两个子层完成解码层:(1)以编码器输出为内存的交叉注意区块,以及(2)每个区块应采用与以上所实施的自省相同的结构。
+        # [中文] 待完成：补全解码器层剩余两个子层：以编码器输出为 memory 的交叉注意力，以及前馈网络。每个子层采用与上面自注意力相同的整体结构。
+        shortcut = tgt
+        tgt = self.cross_attn(query=tgt, key=memory, value=memory)
+        tgt = self.dropout_cross(tgt)
+        tgt = tgt + shortcut
+        tgt = self.norm_cross(tgt)
 
+        shortcut = tgt
+        tgt = self.ffn(tgt)
+        tgt= self.dropout_ffn(tgt)
+        tgt = tgt + shortcut
+        tgt = self.norm_ffn(tgt)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
 
         return tgt
 
@@ -367,9 +371,7 @@ class PatchEmbedding(nn.Module):
 
 
     中文对照：
-    将图像分割成图像块, 并将每个图像块投射到嵌入矢量。 用作 Vision 变换器 (ViT) 的输入层。
-
-    输入: - img_size: 代表输入图像的高度/宽度的整数 (assumes square image) - patch_size: 代表每个图像块 (square patch) 的高度/ 宽度的全数。 - in_channels:输入图像通道的数目( e.g ., 3 为 RGB) - embed_dim:线性嵌入空间的尺寸。
+    ViT 的图像块嵌入层：将图片划分为图像块，再将每块投影为嵌入向量。img_size、patch_size 分别为正方形图片和图像块的边长，in_channels 为输入通道数，embed_dim 为嵌入维度。
     """
     def __init__(self, img_size, patch_size, in_channels=3, embed_dim=128):
         super().__init__()
@@ -385,7 +387,7 @@ class PatchEmbedding(nn.Module):
         self.patch_dim = patch_size * patch_size * in_channels
 
         # Linear projection of flattened patches to the embedding dimension
-        # [中文] 向嵌入尺寸投放平坦图像块的线性投影
+        # [中文] 将展平的图像块线性投影到嵌入维度。
         self.proj = nn.Linear(self.patch_dim, embed_dim)
 
 
@@ -401,11 +403,7 @@ class PatchEmbedding(nn.Module):
 
 
         中文对照：
-         图像块嵌入时 前向传播。
-
-        输入数: - x: 输入图像的形状 (N, C, H, W)
-
-        返回: - 退出: 形状 (N, num_patches, embed_dim) 的图像块嵌入
+        图像块嵌入层的前向传播。输入图像 x 为 (N,C,H,W)，输出图像块嵌入 out 为 (N,num_patches,embed_dim)。
         """
         N, C, H, W = x.shape
         assert H == self.img_size and W == self.img_size, \
@@ -420,14 +418,26 @@ class PatchEmbedding(nn.Module):
         # step. Once the patches are flattened, embed them into latent vectors     #
         # using the projection layer.                                              #
         ############################################################################
-        # [中文] TODO: 将图像分隔为形状 (C x patch_size x patch_size) 的非重叠图像块, 并将其重新排列为形状 (N,
-        # num_patches, patch_dim)。 不要使用环形。 相反, 您可能会发现 torch.reshape 和 torch.permute
-        # 有助于此步骤。 一旦图像块被平整, 就会使用投影层将其嵌入潜伏矢量。
+        # [中文] 待完成：将图片划分为不重叠的图像块，每块形状为 (C,patch_size,patch_size)，重排成 (N,num_patches,patch_dim)。不使用 for
+        # 循环，可参考 torch.reshape 和 torch.permute；展平后用 projection 层映射到嵌入空间。
+        patch_size = self.patch_size
+        patch_dim = self.patch_dim
+        num_patches = self.num_patches
 
+        x_division = x.reshape(
+            N, C,
+            H // patch_size, patch_size,
+            W // patch_size, patch_size
+        )
+
+        x_division = x_division.permute(0, 2, 4, 1, 3, 5)
+        x_patches = x_division.reshape(N, num_patches, patch_dim)
+
+        out = self.proj(x_patches)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
         return out
 
 
@@ -439,7 +449,7 @@ class TransformerEncoderLayer(nn.Module):
 
 
     中文对照：
-    一个转换器编码器的单层, 与变换器 Encoder 一起使用。
+    Transformer 编码器中的一个编码器层。
     """
     def __init__(self, input_dim, num_heads, dim_feedforward=2048, dropout=0.1):
         """
@@ -453,9 +463,7 @@ class TransformerEncoderLayer(nn.Module):
 
 
         中文对照：
-        构造一个变形器 EncoderLayer 实例。
-
-        输入: - input_dim: 输入中预期的特性数。 - num_heads:注意头数。 -- dim_feedforward: feedforward 网络模型的尺寸。 -Dropout（随机失活）: Dropout（随机失活） 值。
+        构造 TransformerEncoderLayer。input_dim 为输入特征维度，num_heads 为注意力头数，dim_feedforward 为前馈网络隐藏维度，dropout 为随机失活概率。
         """
         super().__init__()
         self.self_attn = MultiHeadAttention(input_dim, num_heads, dropout)
@@ -480,20 +488,26 @@ class TransformerEncoderLayer(nn.Module):
 
 
         中文对照：
-        通过编码器层传递输入(and mask)。
-
-        输入: - src: 编码器层的序列, 形状 (N, S, D) - src_mask: 源序列的部件, 形状(S, S)
-
-        返回: - 退出: 形状 (N, S, D) 的变形器特性
+        将 src 及掩码送入编码器层。src 为 (N,S,D)，src_mask 为 (S,S)；返回同形状的 Transformer 特征 out。
         """
         ############################################################################
         # TODO: Implement the encoder layer by applying self-attention followed    #
         # by a feedforward block. This code will be very similar to decoder layer. #
         ############################################################################
-        # [中文] TODO: 通过应用自我注意和进料前方块来执行编码器层。 此代码将与解码器层非常相似。
+        # [中文] 待完成：依次应用自注意力和前馈网络，完成编码器层。整体写法与解码器层相近。
+        shortcut = src
+        src = self.self_attn(src, src, src, src_mask)
+        src = self.dropout_self(src)
+        src = src + shortcut
+        src = self.norm_self(src)
 
+        shortcut = src
+        src = self.ffn(src)
+        src = self.dropout_ffn(src)
+        src = src + shortcut
+        src = self.norm_ffn(src)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
         return src

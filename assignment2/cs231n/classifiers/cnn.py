@@ -18,11 +18,7 @@ class ThreeLayerConvNet(object):
 
 
     中文对照：
-    具有以下结构的三层革命网络:
-
-    -  - 2x2  - relu -
-
-    该网络在由N图像组成的 (N, C, H, W) 形状的小型数据包上运作,每个图像的高度为H和宽度为W,并有C输入通道。
+    三层卷积网络：卷积 → ReLU → 2×2 最大池化 → 全连接 → ReLU → 全连接 → Softmax。输入图像批量采用 (N,C,H,W) 格式。
     """
 
     def __init__(
@@ -52,9 +48,7 @@ class ThreeLayerConvNet(object):
 
 
         中文对照：
-        初始化一个新的网络。
-
-        输入: - input_dim: Tuple (C, H, W) 提供输入数据大小 - num_filters: 用于卷积层的滤波器数量 - filter_size: 在卷积层使用滤波器的宽度/高度 - hidden_dim:在全连接的隐藏层中使用的单位数量 - num_classes: 从最后折叠层生成的分数数。 - weight_scale: 为权重随机初始化提供标准差的弧度。 - 重: 标量 提供 L2 正则化强度 - dtype: 用于计算的非浮数据类型。
+        初始化卷积网络。input_dim 为 (C,H,W)，num_filters 和 filter_size 为卷积核数量与边长，hidden_dim 为全连接隐藏层大小，num_classes 为输出类别数。weight_scale 是随机初始化标准差，reg 是 L2 正则化强度，dtype 指定数值类型。
         """
         self.params = {}
         self.reg = reg
@@ -75,15 +69,19 @@ class ThreeLayerConvNet(object):
         # **the width and height of the input are preserved**. Take a look at      #
         # the start of the loss() function to see how that happens.                #
         ############################################################################
-        # [中文] TODO: 初始化三层革命网络的权重和偏差。 权重应该从高斯中心开始。0.0标准差等于weight_scale;
-        # 偏差应初始化为零。所有权重和偏差都应存储在字典中self.params。 使用键盘存储电流层的权重和偏差'W1'和'b1';
-        # 使用键'W2'和'b2'对于隐藏的方形层和键的权重和偏差'W3'和'b3'对输出平面的权重和偏差。 IMPORT: 对于此任务,
-        # 您可以假设第一个卷积层的倾斜和曲折。 选择图层以便 ** 保存输入的宽度和高度**。查看损失()函数的起始点,看看是如何发生的。
-
+        # [中文] 待完成：初始化三层卷积网络的参数。权重从均值为 0、标准差为 weight_scale 的高斯分布采样，偏置置零，全部存入 self.params。卷积层用
+        # W1、b1，隐藏全连接层用 W2、b2，输出全连接层用 W3、b3。本题卷积层的补零和步幅设置会保持输入的空间高度与宽度，具体设置见 loss() 开头。
+        C, H, W = input_dim
+        self.params['W1'] = weight_scale * np.random.randn(num_filters, C, filter_size, filter_size)
+        self.params['b1'] = np.zeros(num_filters)
+        self.params['W2'] = weight_scale * np.random.randn(num_filters * (H//2) * (W//2), hidden_dim)
+        self.params['b2'] = np.zeros(hidden_dim)
+        self.params['W3'] = weight_scale * np.random.randn(hidden_dim, num_classes)
+        self.params['b3'] = np.zeros(num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
 
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
@@ -96,9 +94,7 @@ class ThreeLayerConvNet(object):
 
 
         中文对照：
-        评估三层革命网络的损失和梯度。
-
-        输入/ 输出: API 与 TwoLayerNet 在 fc_net.py 中相同。
+        计算三层卷积网络的损失和梯度。输入输出遵循 fc_net.py 中 TwoLayerNet 的相同接口。
         """
         W1, b1 = self.params["W1"], self.params["b1"]
         W2, b2 = self.params["W2"], self.params["b2"]
@@ -106,12 +102,12 @@ class ThreeLayerConvNet(object):
 
         # pass conv_param to the forward pass for the convolutional layer
         # Padding and stride chosen to preserve the input spatial size
-        # [中文] 通过 conv_param 到 前向传播,用于为保存输入空间大小而选择的电流层平面和斜面
+        # [中文] 将 conv_param 传入卷积前向传播；这里的补零与步幅设置用于保持输入的空间尺寸。
         filter_size = W1.shape[2]
         conv_param = {"stride": 1, "pad": (filter_size - 1) // 2}
 
         # pass pool_param to the forward pass for the max-pooling layer
-        # [中文] 通过 pool_param 到最大共享层的 前向传播
+        # [中文] 将 pool_param 传给最大池化的前向传播。
         pool_param = {"pool_height": 2, "pool_width": 2, "stride": 2}
 
         scores = None
@@ -123,13 +119,15 @@ class ThreeLayerConvNet(object):
         # Remember you can use the functions defined in cs231n/fast_layers.py and  #
         # cs231n/layer_utils.py in your implementation (already imported).         #
         ############################################################################
-        # [中文] TODO: 执行前向传播对于三层变换网,计算 X 的类分并将其存储到分数变量中。记住,您可以使用 cs231n/
-        # 定义的函数。fast_layers.py和Cs231n/layer_utils.py执行中的(already imported) .
-
+        # [中文] 待完成：实现三层卷积网络的前向传播，将各类别评分存入 scores。可调用已导入的 cs231n/fast_layers.py 和 cs231n/layer_utils.py
+        # 中的函数。
+        out, conv_relu1_pool_cache =  conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+        out, fc1_relu2_cache = affine_relu_forward(out, W2, b2)
+        scores, fc2_cache = affine_forward(out, W3, b3)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
 
         if y is None:
             return scores
@@ -145,13 +143,21 @@ class ThreeLayerConvNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        # [中文] TODO:
-        # 执行反向传播对于三层演变网,将损失和梯度储存在损失和分级变量中。使用软max计算数据损失,并确保grads[k]保持梯度self.params[k].
-        # 不要忘了添加 L2 正则化! 注意: 要保证您的执行与我们相符, 您通过自动测试, 请确保您的 L2正则化包含一个因素:0.5以简化梯度的表达式。
+        # [中文] 待完成：实现三层卷积网络的反向传播，损失存入 loss，参数梯度存入 grads。数据损失使用 Softmax，并加入 L2 正则化；grads[k] 对应
+        # self.params[k]。为匹配参考实现，L2 正则化项应包含 0.5 系数。
+        loss, dscores = softmax_loss(scores, y)
+        loss += self.reg * 0.5 * (np.sum(W1*W1) + np.sum(W2*W2) + np.sum(W3*W3))
 
+        dout, dW3, db3 = affine_backward(dscores, fc2_cache)
+        dout, dW2, db2 = affine_relu_backward(dout, fc1_relu2_cache)
+        dX, dW1, db1 = conv_relu_pool_backward(dout, conv_relu1_pool_cache)
+
+        grads["W1"], grads["b1"] = dW1 + self.reg * W1, db1
+        grads["W2"], grads["b2"] = dW2 + self.reg * W2, db2
+        grads["W3"], grads["b3"] = dW3 + self.reg * W3, db3
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-        # [中文] 代码结束
+        # [中文] 自行实现的代码区域结束。
 
         return loss, grads

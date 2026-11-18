@@ -18,7 +18,7 @@ def load_CIFAR_batch(filename):
     """ load single batch of cifar
 
     中文对照：
-    装入单批cifar
+    加载 CIFAR 的一个数据批次。
     """
     with open(filename, "rb") as f:
         datadict = load_pickle(f)
@@ -33,7 +33,7 @@ def load_CIFAR10(ROOT):
     """ load all of cifar
 
     中文对照：
-    装入全部cifar
+    加载全部 CIFAR 数据。
     """
     xs = []
     ys = []
@@ -59,17 +59,17 @@ def get_CIFAR10_data(
 
 
     中文对照：
-    装上直升机...10从磁盘上建立数据集, 并进行预处理以准备分类。 这些步骤与我们用于 SVM 的步数相同, 但被压缩为单个函数。
+    从磁盘加载 CIFAR-10，并完成分类器所需的预处理，将前面分散的数据处理步骤封装为一个函数。
     """
     # Load the raw CIFAR-10 data
-    # [中文] 装入原始的CIFAR - 10 数据
+    # [中文] 加载原始 CIFAR-10 数据。
     cifar10_dir = os.path.join(
         os.path.dirname(__file__), "datasets/cifar-10-batches-py"
     )
     X_train, y_train, X_test, y_test = load_CIFAR10(cifar10_dir)
 
     # Subsample the data
-    # [中文] 分样数据
+    # [中文] 截取一部分数据。
     mask = list(range(num_training, num_training + num_validation))
     X_val = X_train[mask]
     y_val = y_train[mask]
@@ -81,7 +81,7 @@ def get_CIFAR10_data(
     y_test = y_test[mask]
 
     # Normalize the data: subtract the mean image
-    # [中文] 数据正常化:减去平均图像
+    # [中文] 数据归一化：减去平均图像。
     if subtract_mean:
         mean_image = np.mean(X_train, axis=0)
         X_train -= mean_image
@@ -89,13 +89,13 @@ def get_CIFAR10_data(
         X_test -= mean_image
 
     # Transpose so that channels come first
-    # [中文] 转换频道为第一
+    # [中文] 调整维度顺序，将通道放在前面。
     X_train = X_train.transpose(0, 3, 1, 2).copy()
     X_val = X_val.transpose(0, 3, 1, 2).copy()
     X_test = X_test.transpose(0, 3, 1, 2).copy()
 
     # Package data into a dictionary
-    # [中文] 将数据包装入字典
+    # [中文] 将数据组织为字典。
     return {
         "X_train": X_train,
         "y_train": y_train,
@@ -131,23 +131,19 @@ def load_tiny_imagenet(path, dtype=np.float32, subtract_mean=True):
 
 
     中文对照：
-    装入小图像网。 每个小图像网 - 100 - A、 小图像网 -100 - B和小图像网- 200 都有相同的目录结构, 因此可用于装入其中的任何一个。
-
-    输入: - 路径: 向要装入的目录输入给定路径。 - dtype: 用来装入数据的纽菲数据类型。 - subtract_mean: 是否要减去平均训练图像。
-
-    返回:包含以下条目的字典: -class_names: 列表class_names[i] 是一个字符串列表, 显示装入数据集中的类 i 的 WordNet 名称。 -X_train:  (N_tr, 3, 64, 64)训练图像的数列 - y_train:  (N_tr,)训练标签的数组 - X_val:  (N_val, 3, 64, 64)校验图像的数组 -y_val:  (N_val,)校验标签的数组 -X_test:  (N_test, 3, 64, 64)测试图像的数组。 - y_test:  (N_test,)测试标签的数组; 如果测试标签不可用(such as in student code)礛y_test将是无。mean_image:  (3, 64, 64)提供平均训练图像的数组
+    加载采用相同目录结构的 TinyImageNet 数据。path 是数据目录，dtype 决定 NumPy 数据类型，subtract_mean 决定是否减去训练集平均图像。返回字典包含 class_names、训练和验证的图片及标签、测试图片、可用时的测试标签，以及 mean_image。图片采用 (N,3,64,64)，标签为 (N,)；无测试标签时 y_test=None。
     """
     # First load wnids
-    # [中文] 第一次负载 wnids
+    # [中文] 先加载 WordNet 类别 ID（wnids）。
     with open(os.path.join(path, "wnids.txt"), "r") as f:
         wnids = [x.strip() for x in f]
 
     # Map wnids to integer labels
-    # [中文] 显示整数标签的地图 wnids
+    # [中文] 将 wnids 映射为整数类别标签。
     wnid_to_label = {wnid: i for i, wnid in enumerate(wnids)}
 
     # Use words.txt to get names for each class
-    # [中文] 使用 words.txt 获取每个类的名称
+    # [中文] 从 words.txt 读取各类别的名称。
     with open(os.path.join(path, "words.txt"), "r") as f:
         wnid_to_words = dict(line.split("\t") for line in f)
         for wnid, words in wnid_to_words.items():
@@ -155,14 +151,14 @@ def load_tiny_imagenet(path, dtype=np.float32, subtract_mean=True):
     class_names = [wnid_to_words[wnid] for wnid in wnids]
 
     # Next load training data.
-    # [中文] 下一个负载训练数据。
+    # [中文] 接下来加载训练数据。
     X_train = []
     y_train = []
     for i, wnid in enumerate(wnids):
         if (i + 1) % 20 == 0:
             print("loading training data for synset %d / %d" % (i + 1, len(wnids)))
         # To figure out the filenames we need to open the boxes file
-        # [中文] 要弄清楚要打开框文件的文件名
+        # [中文] 从 boxes 文件读取图片文件名。
         boxes_file = os.path.join(path, "train", wnid, "%s_boxes.txt" % wnid)
         with open(boxes_file, "r") as f:
             filenames = [x.split("\t")[0] for x in f]
@@ -175,19 +171,19 @@ def load_tiny_imagenet(path, dtype=np.float32, subtract_mean=True):
             img = imread(img_file)
             if img.ndim == 2:
                 ## grayscale file
-                # [中文] 灰度文件
+                # [中文] 灰度图文件。
                 img.shape = (64, 64, 1)
             X_train_block[j] = img.transpose(2, 0, 1)
         X_train.append(X_train_block)
         y_train.append(y_train_block)
 
     # We need to concatenate all training data
-    # [中文] 我们需要将所有训练数据集中起来
+    # [中文] 将所有训练数据拼接起来。
     X_train = np.concatenate(X_train, axis=0)
     y_train = np.concatenate(y_train, axis=0)
 
     # Next load validation data
-    # [中文] 下一个负载验证数据
+    # [中文] 接下来加载验证数据。
     with open(os.path.join(path, "val", "val_annotations.txt"), "r") as f:
         img_files = []
         val_wnids = []
@@ -208,7 +204,7 @@ def load_tiny_imagenet(path, dtype=np.float32, subtract_mean=True):
     # Next load test images
     # Students won't have test labels, so we need to iterate over files in the
     # images directory.
-    # [中文] 下一个负载测试图像 学生不会有测试标签, 所以我们需要复制文件 在图像目录中。
+    # [中文] 接下来加载测试图片。学生没有测试标签，因此需要遍历 images 目录中的文件。
     img_files = os.listdir(os.path.join(path, "test", "images"))
     X_test = np.zeros((len(img_files), 3, 64, 64), dtype=dtype)
     for i, img_file in enumerate(img_files):
@@ -263,11 +259,7 @@ def load_models(models_dir):
 
 
     中文对照：
-    从磁盘装入已保存的模型。 这将尝试解开目录中的全部文件; 任何在取消选中时出错的文件( 如 README.txt ) 都会被跳过。
-
-    输入: - models_dir: 字符串将路径给予包含模型文件的目录。 每个模型文件都是带有 'model' 字段的泡菜字典。
-
-    返回: 用于模型的字典映射模型文件名称。
+    从目录中反序列化已保存的模型；无法按模型读取的文件（例如 README.txt）会被跳过。返回文件名到模型对象的映射字典。
     """
     models = {}
     for model_file in os.listdir(models_dir):
@@ -292,11 +284,7 @@ def load_imagenet_val(num=None):
 
 
     中文对照：
-    从图像网络装入少量验证图像。
-
-    输入: - num: 要装入 (max of 25) 的图像数量
-
-    返回: - X:有形状的NumPy 数组 [num, nump, ]224,  224,  3- y:由整数图像标签组成的NumPy 数组,形状[num] -class_names: dict 映射类名的整数标签
+    加载少量 ImageNet 验证图片，num 最多为 25。返回图像数组 X（num,224,224,3）、整数标签 y（num,）和类别编号到类别名的映射 class_names。
     """
     imagenet_fn = os.path.join(
         os.path.dirname(__file__), "datasets/imagenet_val_25.npz"
@@ -310,9 +298,7 @@ def load_imagenet_val(num=None):
 
     # modify the default parameters of np.load
     # https://stackoverflow.com/questions/55890813/how-to-fix-object-arrays-cannot-be-loaded-when-allow-pickle-false-for-imdb-loa
-    # [中文] 修改 np.load
-    # https://stackoverflow.com/questions/55890813/how-to-fix-object-arrays-cannot-be-loaded-when-allow-pickle-false-for-imdb-loa
-    # 的默认参数
+    # [中文] 调整 np.load 的默认参数，以便加载含 Python 对象的数组。参考链接见英文原注释。
     np_load_old = np.load
     np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
     f = np.load(imagenet_fn)

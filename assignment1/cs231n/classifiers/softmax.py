@@ -24,41 +24,41 @@ def softmax_loss_naive(W, X, y, reg):
 
 
     中文对照：
-    软体损失功能, 幼稚执行 (with loops)
-
-    输入有D维度,有C级,我们用N小插头操作。
-
-    输入: - W: 包含权重的形状 (D, C) 的缩略数组。 - X: 含有少量数据的缩略图 (N, D) 的缩微数组。 - y: 包含训练标签的缩略图(N,) 缩略图; y[i] = c 表示 X[i] 有标签 c, 其中 0 \ > c < C. - reg: (float) 正则化强度
-
-    返回一个图普: - 以单浮标损失 - 相对于权重的梯度; 与 W 形状相同的数组
+    Softmax 损失的朴素实现（使用循环）。每批有 N 个样本，特征维度为 D，类别数为 C。W 的形状为 (D,C)，X 为 (N,D)，y 为 (N,)；y[i]=c 表示样本 i 的类别为 c，且 0 <= c < C。reg 是正则化强度。返回损失标量及与 W 同形状的权重梯度。
     """
     # Initialize the loss and gradient to zero.
-    # [中文] 初始化损失和梯度为零。
+    # [中文] 将损失和梯度初始化为零。
     loss = 0.0
     dW = np.zeros_like(W)
 
     # compute the loss and the gradient
-    # [中文] 计算损失和梯度
+    # [中文] 计算损失及其梯度。
     num_classes = W.shape[1]
     num_train = X.shape[0]
     for i in range(num_train):
         scores = X[i].dot(W)
 
         # compute the probabilities in numerically stable way
-        # [中文] 以数字稳定的方式计算概率
+        # [中文] 以数值稳定的方式计算概率。
         scores -= np.max(scores)
         p = np.exp(scores)
         p /= p.sum()  # normalize
-        # [中文] 正常化
+        # [中文] 归一化。
         logp = np.log(p)
 
         loss -= logp[y[i]]  # negative log probability is the loss
-        # [中文] 负日志概率为损失
-
+        # [中文] 损失为正确类别概率的负对数。
+        for j in range(10):
+            if j == y[i]:
+                grad = -1 + p[j]
+            else:
+                grad = p[j]
+            dW[:,j] += grad * X[i]
 
     # normalized hinge loss plus regularization
-    # [中文] 正常的关节损失加上正则化
+    # [中文] 归一化后的合页损失加上正则化项。
     loss = loss / num_train + reg * np.sum(W * W)
+    dW = dW / num_train + reg * 2 * W
 
     #############################################################################
     # TODO:                                                                     #
@@ -68,8 +68,7 @@ def softmax_loss_naive(W, X, y, reg):
     # loss is being computed. As a result you may need to modify some of the    #
     # code above to compute the gradient.                                       #
     #############################################################################
-    # [中文] TODO: 计算损失函数的梯度并将其存储为 dW。 相反, 首先计算损失然后计算衍生物, 在计算损失的同时计算衍生物可能比较简单。 因此,
-    # 您可能需要修改上面的一些代码来计算梯度。
+    # [中文] 待完成：计算损失对权重的梯度并存入 dW。可以在计算损失的循环中同时累积梯度，因此可能需要调整上面已有的计算代码。
 
 
     return loss, dW
@@ -83,12 +82,10 @@ def softmax_loss_vectorized(W, X, y, reg):
 
 
     中文对照：
-    软体损失函数, 矢量化版本。
-
-    投入和产出与softmax_loss_naive相同。
+    Softmax 损失的向量化实现。输入和输出与 softmax_loss_naive 相同。
     """
     # Initialize the loss and gradient to zero.
-    # [中文] 初始化损失和梯度为零。
+    # [中文] 将损失和梯度初始化为零。
     loss = 0.0
     dW = np.zeros_like(W)
 
@@ -98,9 +95,15 @@ def softmax_loss_vectorized(W, X, y, reg):
     # Implement a vectorized version of the softmax loss, storing the           #
     # result in loss.                                                           #
     #############################################################################
-    # [中文] TODO: 执行软体损失的矢量化版本, 存储导致损失的结果。
-
-
+    # [中文] 待完成：以向量化方式计算 Softmax 损失，存入 loss。
+    num_train = X.shape[0]
+    scores = X.dot(W)
+    scores -= np.max(scores, axis=1, keepdims=True)
+    ps = np.exp(scores)
+    ps /= np.sum(ps, axis=1, keepdims=True)
+    logps = np.log(ps)
+    loss = -np.mean(logps[np.arange(num_train),y])
+    loss += reg * np.sum(W*W)
     #############################################################################
     # TODO:                                                                     #
     # Implement a vectorized version of the gradient for the softmax            #
@@ -110,7 +113,12 @@ def softmax_loss_vectorized(W, X, y, reg):
     # to reuse some of the intermediate values that you used to compute the     #
     # loss.                                                                     #
     #############################################################################
-    # [中文] TODO: 执行一个向量化的梯度版本, 以存储结果为 dW. Hint: 与其从零开始计算梯度, 不如重新使用一些您用来计算损失的中间值比较容易。
+    # [中文] 待完成：实现 Softmax 损失梯度的向量化计算，将结果存入 dW。原题提示：复用计算损失时已有的中间结果，通常比重新从头计算更方便。
+    dscores = ps.copy()
+    dscores[np.arange(num_train), y] -= 1
 
+    dW = X.T.dot(dscores)
+    dW = dW / num_train + reg * 2 * W
+    
 
     return loss, dW

@@ -3,20 +3,20 @@ set -euo pipefail
 
 CODE=(
 	# Transformer implementation files
-	# [中文] 变换执行文件
+	# [中文] Transformer 的实现文件。
 	"cs231n/transformer_layers.py"
 	"cs231n/classifiers/transformer.py"
 	"cs231n/captioning_solver_transformer.py"
 
 	# Self-Supervised Learning implementation files
-	# [中文] 自我监督学习执行文件
+	# [中文] 自监督学习的实现文件。
 	"cs231n/simclr/contrastive_loss.py"
 	"cs231n/simclr/data_utils.py"
 	"cs231n/simclr/utils.py"
 	"cs231n/simclr/model.py"
 
 	# DDPM implementation files
-	# [中文] DDPM 执行文件
+	# [中文] DDPM 的实现文件。
 	"cs231n/unet.py"
 	"cs231n/gaussian_diffusion.py"
 	"cs231n/ddpm_trainer.py"

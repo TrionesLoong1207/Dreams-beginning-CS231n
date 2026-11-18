@@ -16,11 +16,7 @@ def affine_relu_forward(x, w, b):
 
 
     中文对照：
-    方便度层, 绕行折叠变形, 之后是 RELU。 @ info: whatsthis
-
-    输入数: - x: 输入角层- w, b: 角层的权重
-
-    返回一个图普: - 退出: 从 RELU - 缓存中输出: 要给给 反向传播 的对象
+    将仿射变换与 ReLU 封装为一个组合层。x 是输入，w、b 是仿射层权重和偏置；返回 ReLU 后的 out，以及反向传播所需的 cache。
     """
     a, fc_cache = affine_forward(x, w, b)
     out, relu_cache = relu_forward(a)
@@ -33,7 +29,7 @@ def affine_relu_backward(dout, cache):
 
 
     中文对照：
-     松脂便利层 反向传播
+    仿射层与 ReLU 组合层的反向传播。
     """
     fc_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)
@@ -55,11 +51,7 @@ def conv_relu_forward(x, w, b, conv_param):
 
 
     中文对照：
-    依次执行卷积和 ReLU 的便捷组合层。
-
-    输入数: - x: 向卷积层输入- w, b, conv_param: 卷积层的权重和参数
-
-    返回一个图普: - 退出: 从 RELU - 缓存中输出: 要给给 反向传播 的对象
+    依次执行卷积和 ReLU 的组合层。输入为 x、权重 w、偏置 b 及 conv_param；返回 out 和供反向传播使用的 cache。
     """
     a, conv_cache = conv_forward_fast(x, w, b, conv_param)
     out, relu_cache = relu_forward(a)
@@ -73,7 +65,7 @@ def conv_relu_backward(dout, cache):
 
 
     中文对照：
-     用于 conv-relu 方便层的 反向传播。
+    卷积与 ReLU 组合层的反向传播。
     """
     conv_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)
@@ -112,11 +104,7 @@ def conv_relu_pool_forward(x, w, b, conv_param, pool_param):
 
 
     中文对照：
-    进行革命的便利层, RELU, 和游泳池。
-
-    输入量: - x: 向卷积层输入 - w, b, conv_param: 卷积层的权重和参数 - pool_param:集合层的参数
-
-    返回一个图普: - 退出: 集合层输出 - 缓存: 要给给 反向传播 的对象
+    依次执行卷积、ReLU 与池化的组合层。输入为 x、w、b、conv_param、pool_param；返回 out 和反向传播所需的 cache。
     """
     a, conv_cache = conv_forward_fast(x, w, b, conv_param)
     s, relu_cache = relu_forward(a)
@@ -131,7 +119,7 @@ def conv_relu_pool_backward(dout, cache):
 
 
     中文对照：
-     用于 conv-relu-pool 方便层的 反向传播
+    卷积、ReLU 与池化组合层的反向传播。
     """
     conv_cache, relu_cache, pool_cache = cache
     ds = max_pool_backward_fast(dout, pool_cache)

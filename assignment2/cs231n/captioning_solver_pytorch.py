@@ -47,21 +47,7 @@ class CaptioningSolverPytorch(object):
 
 
     中文对照：
-    描述SolverPytorch 包涵了训练基于 Pytoch 的图像字幕模型所需的全部逻辑。
-
-    要训练模型,您将首先构建一个描述求解实例, 将模型、 数据集和各种选项 (learning rate, batch size, etc) 传递给构建者。 然后您将调用火车 () 方法来运行优化程序并训练模型。
-
-    列车 () 方法返回后, 实例变量 solver.loss_history 将包含训练中遇到的所有损失列表。
-
-    示例用法可能看起来是这样的:
-
-    数据 =load_coco_data() 型号 = MyAwesome 模型 ()hidden_dim = 100求解器 = 描述求解( 模型, 数据, )optim_config ={  'learning_rate':  1e-3, },  num_epochs = 10,  batch_size = 100,  print_every = 100 )  solver.train()
-
-     描述SolverPytorch 用于一个必须符合下列 API 的模型对象:
-
-    输入: - 特征: 提供图像、 形状( N、 D - 说明: 图像描述的排列, 形状 (N, T), 其中每个元素都位于范围 ( 0, V)。
-
-    返回: - 损失: 标量 给出损失 - 梯度: 与self.params绘图参数名称为这些参数的损失梯度。
+    管理基于 PyTorch 的图像描述模型训练。先以模型、COCO 数据和训练配置创建 Solver，再调用 train()；接口与使用示例保留在英文说明中。
     """
 
     def __init__(self, model, data, **kwargs):
@@ -85,19 +71,13 @@ class CaptioningSolverPytorch(object):
 
 
         中文对照：
-        构造一个新的描述求解实例。
-
-        所需参数: - 模型: 符合上述 API 的模型对象 - 数据: load_coco_data 的训练和验证数据词典
-
-        可选论点:
-
-        - learning_rate:优化的学习率。 - batch_size:用于计算训练期间损失和梯度的微型插头的大小。 -num_epochs:训练期间运行的训练轮次数。 - print_every:整数;训练损失将打印到每个print_every迭代。 - 动词:布尔恩;如果设定为错误,训练期间将不打印输出。
+        构造图像描述训练器。必需参数为 model 和 load_coco_data 返回的 data；learning_rate、batch_size、num_epochs、print_every 分别控制学习率、批大小、训练轮数、日志间隔，verbose 控制日志输出。
         """
         self.model = model
         self.data = data
 
         # Unpack keyword arguments
-        # [中文] 卸载关键词参数
+        # [中文] 解包关键字参数。
         self.learning_rate = kwargs.pop("learning_rate", 0.001)
         self.batch_size = kwargs.pop("batch_size", 100)
         self.num_epochs = kwargs.pop("num_epochs", 10)
@@ -107,7 +87,7 @@ class CaptioningSolverPytorch(object):
         self.optim = torch.optim.Adam(list(model.params.values()), self.learning_rate)
 
         # Throw an error if there are extra keyword arguments
-        # [中文] 如果存在额外关键字参数, 丢弃错误
+        # [中文] 如果传入了多余的关键字参数，则报错。
         if len(kwargs) > 0:
             extra = ", ".join('"%s"' % k for k in list(kwargs.keys()))
             raise ValueError("Unrecognized arguments %s" % extra)
@@ -121,10 +101,10 @@ class CaptioningSolverPytorch(object):
 
 
         中文对照：
-        设置一些用于优化的簿记变量。 不要手工调用它。
+        初始化优化过程所需的记录变量；不应手动调用该方法。
         """
         # Set up some variables for book-keeping
-        # [中文] 为簿记设置一些变量
+        # [中文] 初始化用于记录训练过程的变量。
         self.epoch = 0
         self.loss_history = []
 
@@ -136,10 +116,10 @@ class CaptioningSolverPytorch(object):
 
 
         中文对照：
-        做一个单一的梯度更新。 这是由列车 () 命名的, 不应该手工命名。
+        执行一次梯度更新；该方法由 train() 调用，不应手动调用。
         """
         # Make a minibatch of training data
-        # [中文] 制作少量的训练数据
+        # [中文] 构造一个训练用的小批量。
         minibatch = sample_coco_minibatch(
             self.data, batch_size=self.batch_size, split="train"
         )
@@ -159,7 +139,7 @@ class CaptioningSolverPytorch(object):
 
 
         中文对照：
-        运行优化来训练模型。
+        运行优化过程以训练模型。
         """
         for k, v in self.model.params.items():
           v.requires_grad_()
@@ -172,7 +152,7 @@ class CaptioningSolverPytorch(object):
             self._step()
 
             # Maybe print training loss
-            # [中文] 也许是印刷训练损失
+            # [中文] 按设置决定是否打印训练损失。
             if self.verbose and t % self.print_every == 0:
                 print(
                     "(Iteration %d / %d) loss: %f"
@@ -180,7 +160,7 @@ class CaptioningSolverPytorch(object):
                 )
 
             # At the end of every epoch, increment the epoch counter.
-            # [中文] 在每一个训练轮次的尽头, 递增训练轮次的柜台。
+            # [中文] 每个 epoch 结束时，将 epoch 计数加一。
             epoch_end = (t + 1) % iterations_per_epoch == 0
 
         for k, v in self.model.params.items():
